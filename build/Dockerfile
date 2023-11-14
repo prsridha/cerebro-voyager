@@ -22,7 +22,7 @@ RUN mkdir -p /cerebro-repo/cerebro-core
 
 # copy necessary paths
 COPY ./ui /cerebro-repo/cerebro-core/ui
-COPY ./core /cerebro-repo/cerebro-core/core
+COPY ./cerebro /cerebro-repo/cerebro-core/cerebro
 COPY ./server /cerebro-repo/cerebro-core/server
 COPY init.sh /cerebro-repo/cerebro-core/init.sh
 COPY setup.py /cerebro-repo/cerebro-core/setup.py
@@ -37,7 +37,7 @@ RUN pip install -v -e /cerebro-repo/cerebro-core
 
 # set python path env variables
 ENV PYTHONPATH="${PYTHONPATH}:/cerebro-repo/cerebro-core"
-ENV PYTHONPATH="${PYTHONPATH}:/cerebro-repo/cerebro-core/core"
+ENV PYTHONPATH="${PYTHONPATH}:/cerebro-repo/cerebro-core/cerebro"
 ENV PYTHONPATH="${PYTHONPATH}:/user-repo"
 
 # outsource task to Kubernetes config
