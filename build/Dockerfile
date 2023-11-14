@@ -26,7 +26,7 @@ COPY ./core /cerebro-repo/cerebro-core/core
 COPY ./server /cerebro-repo/cerebro-core/server
 COPY init.sh /cerebro-repo/cerebro-core/init.sh
 COPY setup.py /cerebro-repo/cerebro-core/setup.py
-COPY requirements.txt /cerebro-repo/cerebro-kube/requirements.txt
+COPY requirements.txt /cerebro-repo/cerebro-core/requirements.txt
 
 # set working directory
 WORKDIR /cerebro-repo/cerebro-core
