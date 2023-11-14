@@ -157,23 +157,23 @@ cython_debug/
 
 # AngluarJS -
 # Dependency directories
-./ui/project-cerebro/node_modules/
-./ui/project-cerebro/bower_components/
+ui/project-cerebro/node_modules/
+ui/project-cerebro/bower_components/
 
 # Build directories
-./ui/project-cerebro/dist/
-./ui/project-cerebro/build/
-./ui/project-cerebro/.tmp/
-./ui/project-cerebro/.sass-cache/
+ui/project-cerebro/dist/
+ui/project-cerebro/build/
+ui/project-cerebro/.tmp/
+ui/project-cerebro/.sass-cache/
 
 # IDE/Editor specific files
-./ui/project-cerebro/.idea/
-./ui/project-cerebro/.vscode/
+ui/project-cerebro/.idea/
+ui/project-cerebro/.vscode/
 
 # Logs and temporary files
-./ui/project-cerebro/*.log
-./ui/project-cerebro/*.log.*
-./ui/project-cerebro/*.tmp
+ui/project-cerebro/*.log
+ui/project-cerebro/*.log.*
+ui/project-cerebro/*.tmp
 
 
 # PyCharm
