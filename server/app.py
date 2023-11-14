@@ -14,7 +14,7 @@ from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 
 logging = CerebroLogger("dispatcher")
-logger = logging.create_logger("backend")
+logger = logging.create_logger("server")
 
 app = Flask(__name__)
 CORS(app)
@@ -43,10 +43,12 @@ def copy_files_to_pods(cli, root_path, cerebro_info):
     code_to_path = cerebro_info["user_repo_path"]
 
     # get controller pod name
-    namespace = "cerebro"
-    label = "app=cerebro-controller"
     config.load_incluster_config()
     v1 = client.CoreV1Api()
+    cm1 = v1.read_namespaced_config_map(name='cerebro-info', namespace='cerebro')
+    namespace = "cerebro"
+    label = "app=cerebro-controller"
+
     pods_list = v1.list_namespaced_pod(namespace, label_selector=label, watch=False)
     controller_pod = pods_list.items[0].metadata.name
 
