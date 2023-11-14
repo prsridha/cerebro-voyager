@@ -34,8 +34,12 @@ markupsafe==2.1.3
     # via
     #   jinja2
     #   werkzeug
+oyaml==1.0
+    # via -r requirements.in
 python-dateutil==2.8.2
     # via botocore
+pyyaml==6.0.1
+    # via oyaml
 s3transfer==0.7.0
     # via boto3
 six==1.16.0
