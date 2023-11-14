@@ -1,0 +1,32 @@
+<div>
+    <div class="content">
+        <h1>Code</h1>
+        <h3>Next, you need to upload the code containing any auxillary files you might need to run your models. You will be providing the data processing function, train function and test function at a later step:</h3>
+
+        <div class="form-region">
+            <form [formGroup]="fileForm">
+                <span class="inpt-spn">
+                    <button mat-raised-button color="primary" (click)="fileInput.click()">
+                        Choose File
+                        <input #fileInput type="file" (change)="onFileChange($event)" style="display:none;" />
+                    </button>
+                    </span>
+                <span class="btn-spn"><button mat-raised-button color="accent" (click)="submit()">Upload</button></span>
+            </form>
+        </div>
+    </div>
+
+    <h3 class="message">The expected file format is zip. Be sure to compress your code files such that when extracted, no additional directories are created.</h3>
+
+    <div class="footer">
+        <div class="spinner">
+            <mat-spinner *ngIf="loading"></mat-spinner>
+        </div>
+        <span class="next-btn">
+            <button mat-raised-button routerLink="/dashboards" color="primary">Next</button>
+        </span>
+        <span class="prev-btn">
+            <button mat-raised-button routerLink="/params" color="basic">Prev</button>
+        </span>
+    </div>
+</div>

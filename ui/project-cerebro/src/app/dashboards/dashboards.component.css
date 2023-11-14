@@ -1,0 +1,21 @@
+.content {
+    height: 80%;
+}
+.footer {
+    position: absolute;
+    bottom: 10%;
+    height: 10%;
+    width: 80%;
+}
+.next-btn {
+    float: right;
+}
+.prev-btn {
+    float: left;
+}
+.dshbrd-btn-container {
+    padding: 5%;
+}
+.dshbrd-btn {
+    padding: 5%;
+}

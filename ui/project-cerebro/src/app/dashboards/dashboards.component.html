@@ -1,0 +1,36 @@
+<div>
+    <div class="content">
+        <h1>Dashboards</h1>
+        <h3>That's it! You're all set to get started with your project!</h3>
+        <h3>Open up the <b>Jupyter Notebook</b> to specify the Data Preprocessing and Model training/testing functions</h3>
+        <h3>You can see how your models are doing via the <b>Tensorboard Dashboard</b></h3>
+        <h3>To get an overview of your cluster and its performance, head over to the <b>Grafana Dashbaord</b></h3>
+    </div>
+
+    <div class="dshbrd-btn-container">
+        <span class="dshbrd-btn">
+            <button mat-raised-button color="accent" (click) = "goToLink(this.urls.jupyterURL)">
+                <mat-icon>code</mat-icon>
+                Jupyter Notebook
+            </button>
+        </span>
+        <span class="dshbrd-btn">
+            <button mat-raised-button color="accent" (click) = "goToLink(this.urls.tensorboardURL)">
+                <mat-icon>trending_up</mat-icon>
+                Tensorboard Dashboard
+            </button>
+        </span>
+        <span class="dshbrd-btn">
+            <button mat-raised-button color="accent" (click) = "goToLink(this.urls.grafanaURL)">
+                <mat-icon>dashboard</mat-icon>
+                Grafana Dashboard
+            </button>
+        </span>
+    </div>
+
+    <div class="footer">
+        <span class="prev-btn">
+            <button mat-raised-button routerLink="/code" color="basic">Prev</button>
+        </span>
+    </div>
+</div>

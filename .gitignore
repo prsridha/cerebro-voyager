@@ -165,6 +165,7 @@ ui/project-cerebro/dist/
 ui/project-cerebro/build/
 ui/project-cerebro/.tmp/
 ui/project-cerebro/.sass-cache/
+ui/project-cerebro/.angular/cache/
 
 # IDE/Editor specific files
 ui/project-cerebro/.idea/
