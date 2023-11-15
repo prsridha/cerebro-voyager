@@ -18,27 +18,27 @@ RUN npm --version
 RUN npm install -g @angular/cli
 
 # create required directories
-RUN mkdir -p /cerebro-repo/cerebro-core
+RUN mkdir -p /cerebro-core
 
 # copy necessary paths
-COPY ./ui /cerebro-repo/cerebro-core/ui
-COPY ./cerebro /cerebro-repo/cerebro-core/cerebro
-COPY ./server /cerebro-repo/cerebro-core/server
-COPY init.sh /cerebro-repo/cerebro-core/init.sh
-COPY setup.py /cerebro-repo/cerebro-core/setup.py
-COPY requirements.txt /cerebro-repo/cerebro-core/requirements.txt
+COPY ./ui /cerebro-core/ui
+COPY ./cerebro /cerebro-core/cerebro
+COPY ./server /cerebro-core/server
+COPY init.sh /cerebro-core/init.sh
+COPY setup.py /cerebro-core/setup.py
+COPY requirements.txt /cerebro-core/requirements.txt
 
 # set working directory
-WORKDIR /cerebro-repo/cerebro-core
+WORKDIR /cerebro-core
 
 # install dependencies and create cerebro package
 RUN pip install -r requirements.txt
-RUN pip install -v -e /cerebro-repo/cerebro-core
+RUN pip install -v -e /cerebro-core
 
 # set python path env variables
-ENV PYTHONPATH="${PYTHONPATH}:/cerebro-repo/cerebro-core"
-ENV PYTHONPATH="${PYTHONPATH}:/cerebro-repo/cerebro-core/cerebro"
-ENV PYTHONPATH="${PYTHONPATH}:/user-repo"
+ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core"
+ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core/cerebro"
+ENV PYTHONPATH="${PYTHONPATH}:/user"
 
 # outsource task to Kubernetes config
 ENTRYPOINT ["tail", "-f", "/dev/null"]
