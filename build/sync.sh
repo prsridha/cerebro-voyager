@@ -2,11 +2,9 @@
 
 if [[ "$PLATFORM" == "prod" ]]; then
     echo "Platform set to Production"
-    mkdir -p /cerebro-core
-    cp -r /home/cerebro-core/* /cerebro-core/
-    pip install -v -e /cerebro-core
 elif [[ "$PLATFORM" == "dev" ]]; then
     echo "Platform set to dev"
+    rm -rf /cerebro-repo/*
     if [ -z "${GIT_SYNC_BRANCH}" ]; then
         git clone $GIT_SYNC_REPO /cerebro-core
     else

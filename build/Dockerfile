@@ -21,24 +21,27 @@ RUN npm install -g @angular/cli
 RUN mkdir -p /home/cerebro-core
 
 # copy necessary paths
-COPY ./ui /home/cerebro-core/ui
-COPY ./cerebro /home/cerebro-core/cerebro
-COPY ./server /home/cerebro-core/server
-COPY init.sh /home/cerebro-core/init.sh
-COPY setup.py /home/cerebro-core/setup.py
-COPY requirements.txt /home/cerebro-core/requirements.txt
-COPY build/sync.sh /home/cerebro-core/sync.sh
+COPY ./ui /cerebro-core/ui
+COPY ./cerebro /cerebro-core/cerebro
+COPY ./server /cerebro-core/server
+COPY init.sh /cerebro-core/init.sh
+COPY setup.py /cerebro-core/setup.py
+COPY requirements.txt /cerebro-core/requirements.txt
 
 # install dependencies
-RUN pip install -r /home/cerebro-core/requirements.txt
+RUN pip install -r /cerebro-core/requirements.txt
 
 # set python path env variables
 ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core"
 ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core/cerebro"
 ENV PYTHONPATH="${PYTHONPATH}:/user"
 
-# Set executable permissions on the script
-RUN chmod +x /home/cerebro-core/sync.sh
+# install cerebro package
+RUN pip install -v -e /cerebro-core
+
+# Copy sync.sh script and set executable permissions
+COPY build/sync.sh /sync.sh
+RUN chmod +x /sync.sh
 
 # dummy task (Kubernetes will overrride)
 ENTRYPOINT ["tail", "-f", "/dev/null"]
