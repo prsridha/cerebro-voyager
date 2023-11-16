@@ -27,6 +27,7 @@ COPY ./server /home/cerebro-core/server
 COPY init.sh /home/cerebro-core/init.sh
 COPY setup.py /home/cerebro-core/setup.py
 COPY requirements.txt /home/cerebro-core/requirements.txt
+COPY build/sync.sh /home/cerebro-core/sync.sh
 
 # install dependencies
 RUN pip install -r /home/cerebro-core/requirements.txt
