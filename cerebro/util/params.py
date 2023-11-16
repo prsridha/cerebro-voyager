@@ -16,13 +16,13 @@ class Params:
         return cls._instance
 
     def _load_params(self):
-        if os.path.isfile('/cerebro-repo/cerebro-kube/params.json'):
-            with open('/cerebro-repo/cerebro-kube/params.json', 'r') as file:
+        if os.path.isfile('/cerebro-core/params.json'):
+            with open('/cerebro-core/params.json', 'r') as file:
                 config = json.load(file)
         else:
             # load from KVS and then save to params.json file
             config = self._load_from_kvs()
-            with open('/cerebro-repo/cerebro-kube/params.json', 'w') as file:
+            with open('/cerebro-core/params.json', 'w') as file:
                 json.dump(config, file, indent=4)
 
         # assign all variables to the class
@@ -44,7 +44,7 @@ class Params:
         # set misc params
         miscellaneous = {
             "download_paths": [i for i in params["misc"] if i],
-            "output_path": "/data/cerebro_data_storage/miscellaneous"
+            "output_path": "/data/data_storage/miscellaneous"
         }
 
         # set ETL params
@@ -76,14 +76,14 @@ class Params:
             if "{}_main".format(mode) in params and "{}_dir".format(mode) in params:
                 etl[mode]["metadata_url"] = params["{}_main".format(mode)]
                 etl[mode]["multimedia_url"] = params["{}_dir".format(mode)]
-                etl[mode]["multimedia_download_path"] = "/cerebro_data_storage_worker/downloaded/{}".format(mode)
-                etl[mode]["metadata_download_path"] = "/data/cerebro_data_storage/metadata/{}_metadata.csv".format(mode)
-                etl[mode]["partition_path"] = "/data/cerebro_data_storage/partitions/{}".format(mode)
+                etl[mode]["multimedia_download_path"] = "/data_storage_worker/downloaded/{}".format(mode)
+                etl[mode]["metadata_download_path"] = "/data/data_storage/metadata/{}_metadata.csv".format(mode)
+                etl[mode]["partition_path"] = "/data/data_storage/partitions/{}".format(mode)
             if mode == "val":
                 # save processed val data on shared storage
-                etl[mode]["output_path"] = "/data/cerebro_data_storage/post_etl/{}".format(mode)
+                etl[mode]["output_path"] = "/data/data_storage/post_etl/{}".format(mode)
             else:
-                etl[mode]["output_path"] = "/cerebro_data_storage_worker/post_etl/{}".format(mode)
+                etl[mode]["output_path"] = "/data_storage_worker/post_etl/{}".format(mode)
 
         return etl
 
@@ -92,14 +92,14 @@ class Params:
             "metrics_storage_path": {},
             "models_dir": params["models_dir"] if "models_dir" in params else None,
             "output_dir": params["output_dir"] if "output_dir" in params else None,
-            "test_output_path": "/data/cerebro_data_storage/test_output",
-            "checkpoint_storage_path": "/data/cerebro_checkpoint_storage",
-            "prediction_output_path": "/data/cerebro_data_storage/prediction_output"
+            "test_output_path": "/data/data_storage/test_output",
+            "checkpoint_storage_path": "/data/checkpoint_storage",
+            "prediction_output_path": "/data/data_storage/prediction_output"
         }
 
         # MOP Params
-        mop["metrics_storage_path"]["tensorboard"] = "/data/cerebro_metrics_storage/tensorboard"
-        mop["metrics_storage_path"]["meta_metrics"] = "/data/cerebro_metrics_storage/meta_metrics"
-        mop["metrics_storage_path"]["user_metrics"] = "/data/cerebro_metrics_storage/user_metrics"
+        mop["metrics_storage_path"]["tensorboard"] = "/data/metrics_storage/tensorboard"
+        mop["metrics_storage_path"]["meta_metrics"] = "/data/metrics_storage/meta_metrics"
+        mop["metrics_storage_path"]["user_metrics"] = "/data/metrics_storage/user_metrics"
 
         return mop

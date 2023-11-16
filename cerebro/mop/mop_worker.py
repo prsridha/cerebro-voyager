@@ -33,7 +33,8 @@ class CerebroWorker:
         # load values from cerebro-info configmap
         config.load_incluster_config()
         v1 = client.CoreV1Api()
-        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace='cerebro')
+        namespace = os.environ['NAMESPACE']
+        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
         cm_data = json.loads(cm.data["data"])
         hostname = "0.0.0.0"
         port = cm_data["worker_rpc_port"]

@@ -1,3 +1,4 @@
+import os
 import dill
 import json
 import redis
@@ -7,16 +8,23 @@ from kubernetes import client, config
 
 class KeyValueStore:
     def __init__(self, init_tables=False):
-        namespace = "key-value-store"
-        host = "redis-master.{}.svc.cluster.local".format(namespace)
+        # get username and namespace
+        config.load_incluster_config()
+        v1 = client.CoreV1Api()
+        namespace = os.environ['NAMESPACE']
+        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
+        cm_data = json.loads(cm.data["data"])
+        username = cm_data["username"]
+
+        # create redis handle object
+        host = "{}-redis-master.{}.svc.cluster.local".format(username, namespace)
         port = 6379
         passwrd = "cerebro"
         r = redis.Redis(host, port, decode_responses=True, password=passwrd)
         self.r = r
 
-        config.load_incluster_config()
-        v1 = client.CoreV1Api()
-        cm = v1.read_namespaced_config_map(name='node-hardware-info', namespace='cerebro')
+        # get number of workers
+        cm = v1.read_namespaced_config_map(name='node-hardware-info', namespace=namespace)
         node_info = json.loads(cm.data["data"])
         self.num_workers = len(node_info)
 

@@ -144,13 +144,14 @@ class ETLWorker:
         # load values from cerebro-info configmap
         config.load_incluster_config()
         v1 = client.CoreV1Api()
-        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace='cerebro')
+        namespace = os.environ['NAMESPACE']
+        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
         cm_data = json.loads(cm.data["data"])
         user_repo_path = cm_data["user_repo_path"]
         self.shard_multiplicity = cm_data["shard_multiplicity"]
 
         # get node info
-        cm = v1.read_namespaced_config_map(name='node-hardware-info', namespace='cerebro')
+        cm = v1.read_namespaced_config_map(name='node-hardware-info', namespace=namespace)
         node_info = json.loads(cm.data["data"])
         self.num_gpus = node_info["node" + str(worker_id)]["num_gpus"]
 

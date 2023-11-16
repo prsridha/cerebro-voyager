@@ -5,7 +5,7 @@ from pathlib import Path
 
 class CerebroLogger:
     def __init__(self, filename):
-        log_root_path = '/cerebro-repo/cerebro-kube/logs'
+        log_root_path = '/cerebro-core/logs'
         Path(log_root_path).mkdir(parents=True, exist_ok=True)
 
         log_format = '%(levelname)5s: %(name)5s - %(message)10s [%(filename)5s:%(lineno)d @ %(asctime)s]'

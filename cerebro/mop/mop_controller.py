@@ -44,9 +44,13 @@ class MOPController:
         # load values from cerebro-info and node-hardware-info configmaps
         config.load_incluster_config()
         v1 = client.CoreV1Api()
-        cm1 = v1.read_namespaced_config_map(name='cerebro-info', namespace='cerebro')
-        cm2 = v1.read_namespaced_config_map(name='node-hardware-info', namespace='cerebro')
-        rpc_port = json.loads(cm1.data["data"])["worker_rpc_port"]
+        namespace = os.environ['NAMESPACE']
+        cm1 = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
+        cm1_data = json.loads(cm1.data["data"])
+        username = cm1_data["username"]
+        rpc_port = cm1_data["worker_rpc_port"]
+
+        cm2 = v1.read_namespaced_config_map(name='node-hardware-info', namespace=namespace)
         self.num_nodes = len(json.loads(cm2.data["data"]))
 
         # save sub-epoch func in KVS
@@ -60,7 +64,8 @@ class MOPController:
 
         # get MOP workers
         for i in range(self.num_nodes):
-            host = "http://cerebro-worker-{}.workersvc.cerebro.svc.cluster.local".format(str(i))
+            host_args = {"username": username, "pod_id": str(i), "namespace": namespace}
+            host = "http://{username}-cerebro-worker-{pod_id}.{username}-workersvc.{namespace}.svc.cluster.local".format(**host_args)
             self.worker_names.append(host + ":" + str(rpc_port))
         self.workers = {i: xc.ServerProxy(ip) for i, ip in enumerate(self.worker_names)}
 

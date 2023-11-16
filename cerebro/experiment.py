@@ -57,10 +57,6 @@ class Experiment:
     logger = logging.create_logger("experiment")
 
     def __init__(self, cli_params=None):
-        # TODO: create etl and mop handles here - one time only.
-        # TODO: remove __init__ params for both etl and mop and inject these later as needed
-        # TODO: this simplifies things - eg. download of models - just once.
-
         # initialize key value store object
         self.mop = None
         self.num_epochs = None
@@ -75,7 +71,8 @@ class Experiment:
         # load values from cerebro-info configmap
         config.load_incluster_config()
         v1 = client.CoreV1Api()
-        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace='cerebro')
+        namespace = os.environ['NAMESPACE']
+        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
         cm_data = json.loads(cm.data["data"])
         self.cluster_name = cm_data["cluster_name"]
         self.user_repo_path = cm_data["user_repo_path"]

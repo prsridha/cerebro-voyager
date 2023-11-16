@@ -45,7 +45,8 @@ class ETLController:
         # load values from cerebro-info configmap
         config.load_incluster_config()
         v1 = client.CoreV1Api()
-        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace='cerebro')
+        namespace = os.environ['NAMESPACE']
+        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
         cerebro_info = json.loads(cm.data["data"])
         user_repo_path = cerebro_info["user_repo_path"]
 
@@ -53,7 +54,7 @@ class ETLController:
         sys.path.insert(0, user_repo_path)
 
         # get node info
-        cm = v1.read_namespaced_config_map(name='node-hardware-info', namespace='cerebro')
+        cm = v1.read_namespaced_config_map(name='node-hardware-info', namespace=namespace)
         self.node_info = json.loads(cm.data["data"])
         self.num_nodes = len(self.node_info)
 
