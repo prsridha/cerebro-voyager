@@ -1,15 +1,17 @@
 #!/bin/bash
 
-# install requirements for user repo and cerebro repo
-if [ -f /user-repo/requirements.txt ]; then
-    pip install -r /user-repo/requirements.txt
-fi
-if [ -f /cerebro-repo/cerebro-kube/requirements.txt ]; then
-    pip install -r /cerebro-repo/cerebro-kube/requirements.txt
+# install newly added requirements (if any) for cerebro-core
+#if [ -f /cerebro-core/requirements.txt ]; then
+#    pip install -r /cerebro-core/requirements.txt
+#fi
+
+# install requirements for user repo
+if [ -f /user/requirements.txt ]; then
+    pip install -r /user/requirements.txt
 fi
 
 # run etl worker
-python3 /cerebro-repo/cerebro-kube/cerebro/etl/etl_worker.py --id $WORKER_ID_SELF
+python3 /cerebro-core/cerebro/etl/etl_worker.py --id $WORKER_ID_SELF
 # sleep infinity
 
 # check if command exited with error code
