@@ -37,6 +37,9 @@ ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core"
 ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core/cerebro"
 ENV PYTHONPATH="${PYTHONPATH}:/user"
 
+# Set executable permissions on the script
+RUN chmod +x /home/cerebro-core/sync.sh
+
 # dummy task (Kubernetes will overrride)
 ENTRYPOINT ["tail", "-f", "/dev/null"]
 
