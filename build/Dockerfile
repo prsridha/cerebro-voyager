@@ -44,4 +44,4 @@ ENV PYTHONPATH="${PYTHONPATH}:/project/user"
 ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 # run this from cerebro-core dir
-# sudo docker build -t prsridha/project/cerebro-core -f build/Dockerfile .
+# sudo docker build -t prsridha/cerebro-core -f build/Dockerfile .
