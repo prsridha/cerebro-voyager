@@ -4,7 +4,7 @@ if [[ "$PLATFORM" == "prod" ]]; then
     echo "Platform set to Production"
 elif [[ "$PLATFORM" == "dev" ]]; then
     echo "Platform set to dev"
-    rm -rf /cerebro-repo/*
+    rm -rf /cerebro-core/*
     if [ -z "${GIT_SYNC_BRANCH}" ]; then
         git clone $GIT_SYNC_REPO /cerebro-core
     else
