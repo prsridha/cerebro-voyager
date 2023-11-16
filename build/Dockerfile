@@ -36,9 +36,6 @@ ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core"
 ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core/cerebro"
 ENV PYTHONPATH="${PYTHONPATH}:/user"
 
-# Set the PLATFORM environment variable (Kubernetes will overrride)
-ENV PLATFORM="prod"
-
 # dummy task (Kubernetes will overrride)
 ENTRYPOINT ["tail", "-f", "/dev/null"]
 
