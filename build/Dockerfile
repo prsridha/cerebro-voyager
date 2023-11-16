@@ -18,30 +18,30 @@ RUN npm --version
 RUN npm install -g @angular/cli
 
 # create required directories
-RUN mkdir -p /cerebro-core
+RUN mkdir -p /project/cerebro-core
 
 # copy necessary paths
-COPY ./ui /cerebro-core/ui
-COPY ./cerebro /cerebro-core/cerebro
-COPY ./server /cerebro-core/server
-COPY init.sh /cerebro-core/init.sh
-COPY setup.py /cerebro-core/setup.py
-COPY requirements.txt /cerebro-core/requirements.txt
+COPY ./ui /project/cerebro-core/ui
+COPY ./cerebro /project/cerebro-core/cerebro
+COPY ./server /project/cerebro-core/server
+COPY init.sh /project/cerebro-core/init.sh
+COPY setup.py /project/cerebro-core/setup.py
+COPY requirements.txt /project/cerebro-core/requirements.txt
 
 # set working directory
-WORKDIR /cerebro-core
+WORKDIR /project/cerebro-core
 
 # install dependencies and create cerebro package
 RUN pip install -r requirements.txt
-RUN pip install -v -e /cerebro-core
+RUN pip install -v -e /project/cerebro-core
 
 # set python path env variables
-ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core"
-ENV PYTHONPATH="${PYTHONPATH}:/cerebro-core/cerebro"
-ENV PYTHONPATH="${PYTHONPATH}:/user"
+ENV PYTHONPATH="${PYTHONPATH}:/project/cerebro-core"
+ENV PYTHONPATH="${PYTHONPATH}:/project/cerebro-core/cerebro"
+ENV PYTHONPATH="${PYTHONPATH}:/project/user"
 
 # outsource task to Kubernetes config
 ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 # run this from cerebro-core dir
-# sudo docker build -t prsridha/cerebro-core -f build/Dockerfile .
+# sudo docker build -t prsridha/project/cerebro-core -f build/Dockerfile .
