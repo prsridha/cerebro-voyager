@@ -23,8 +23,8 @@ class ETLController:
     def __init__(self):
         self.s3 = None
         self.metadata_df = None
-        self.etl_spec = etl_spec
-        self.fraction = fraction
+        self.etl_spec = None
+        self.fraction = None
 
         self.task_descriptions = {
             kvs_constants.ETL_TASK_PREPROCESS: "Preprocess Data",
