@@ -39,8 +39,11 @@ ENV PYTHONPATH="${PYTHONPATH}:/user"
 # install cerebro package
 RUN pip install -v -e /cerebro-core
 
-# Copy sync.sh script and set executable permissions
+# Copy sync.sh script
 COPY build/sync.sh /sync.sh
+
+# Set executable permissions
+RUN chmod +x /init.sh
 RUN chmod +x /sync.sh
 
 # dummy task (Kubernetes will overrride)
