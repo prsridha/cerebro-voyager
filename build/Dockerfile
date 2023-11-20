@@ -43,7 +43,7 @@ RUN pip install -v -e /cerebro-core
 COPY build/sync.sh /sync.sh
 
 # Set executable permissions
-RUN chmod +x /init.sh
+RUN chmod +x /cerebro-core/init.sh
 RUN chmod +x /sync.sh
 
 # dummy task (Kubernetes will overrride)
