@@ -14,6 +14,7 @@ elif [[ "$PLATFORM" == "dev" ]]; then
     if [ $clone_status -eq 0 ]; then
         echo "Successfully cloned the repository."
         chmod +x /cerebro-core/init.sh
+        git config --global --add safe.directory /cerebro-core
     else
         echo "An error occurred while running git clone."
     fi
