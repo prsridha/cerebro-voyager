@@ -45,6 +45,10 @@ COPY build/sync.sh /sync.sh
 # Set executable permissions
 RUN chmod +x /cerebro-core/init.sh
 RUN chmod +x /sync.sh
+RUN chmod +x /cerebro-core/cerebro/etl/run_etl.sh
+RUN chmod +x /cerebro-core/cerebro/mop/run_mop.sh
+RUN chmod +x /cerebro-core/server/run_server.sh
+RUN chmod +x /cerebro-core/ui/run_ui.sh
 
 # dummy task (Kubernetes will overrride)
 ENTRYPOINT ["tail", "-f", "/dev/null"]
