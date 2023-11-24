@@ -40,15 +40,15 @@ def run(cmd, shell=True, capture_output=True, text=True, haltException=True):
 
 def copy_files_to_pods(cli, root_path, cerebro_info):
     code_from_path = os.path.join(root_path, "code")
-    code_to_path = cerebro_info["user_repo_path"]
+    code_to_path = cerebro_info["user_code_path"]
 
     # get controller pod name
     # config.load_incluster_config()
     config.load_kube_config()
     v1 = client.CoreV1Api()
-    cm1 = v1.read_namespaced_config_map(name='cerebro-info', namespace='cerebro')
-    namespace = "cerebro"
-    label = "app=cerebro-controller"
+    namespace = os.environ['NAMESPACE']
+    username = os.environ['USERNAME']
+    label = "app=cerebro-controller,user={}".format(username)
 
     pods_list = v1.list_namespaced_pod(namespace, label_selector=label, watch=False)
     controller_pod = pods_list.items[0].metadata.name

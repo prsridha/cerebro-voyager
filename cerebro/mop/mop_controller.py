@@ -46,7 +46,8 @@ class MOPController:
         config.load_kube_config()
         v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
-        cm1 = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
+        username = os.environ['USERNAME']
+        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm1_data = json.loads(cm1.data["data"])
         username = cm1_data["username"]
         rpc_port = cm1_data["worker_rpc_port"]

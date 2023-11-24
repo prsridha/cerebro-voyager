@@ -146,18 +146,19 @@ class ETLWorker:
         config.load_kube_config()
         v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
-        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
+        username = os.environ['USERNAME']
+        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm_data = json.loads(cm.data["data"])
-        user_repo_path = cm_data["user_repo_path"]
+        user_code_path = cm_data["user_code_path"]
         self.shard_multiplicity = cm_data["shard_multiplicity"]
 
         # get node info
-        cm = v1.read_namespaced_config_map(name='node-hardware-info', namespace=namespace)
+        cm = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=namespace)
         node_info = json.loads(cm.data["data"])
         self.num_gpus = node_info["node" + str(worker_id)]["num_gpus"]
 
         # add user repo dir to sys path for library discovery
-        sys.path.insert(0, user_repo_path)
+        sys.path.insert(0, user_code_path)
 
         # boost low vcpu nodes
         cores = int(os.cpu_count())

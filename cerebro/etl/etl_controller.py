@@ -47,12 +47,13 @@ class ETLController:
         config.load_kube_config()
         v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
-        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
+        username = os.environ['USERNAME']
+        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cerebro_info = json.loads(cm.data["data"])
-        user_repo_path = cerebro_info["user_repo_path"]
+        user_code_path = cerebro_info["user_code_path"]
 
         # add user repo dir to sys path for library discovery
-        sys.path.insert(0, user_repo_path)
+        sys.path.insert(0, user_code_path)
 
         # get node info
         cm = v1.read_namespaced_config_map(name='node-hardware-info', namespace=namespace)

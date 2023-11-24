@@ -13,7 +13,8 @@ class KeyValueStore:
         config.load_kube_config()
         v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
-        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
+        username = os.environ['USERNAME']
+        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm_data = json.loads(cm.data["data"])
         username = cm_data["username"]
 

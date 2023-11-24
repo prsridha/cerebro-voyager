@@ -73,10 +73,11 @@ class Experiment:
         config.load_kube_config()
         v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
-        cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
+        username = os.environ['USERNAME']
+        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm_data = json.loads(cm.data["data"])
         self.cluster_name = cm_data["cluster_name"]
-        self.user_repo_path = cm_data["user_repo_path"]
+        self.user_code_path = cm_data["user_code_path"]
         self.webapp_backend_port = cm_data["webapp_backend_port"]
         self.controller_data_path = cm_data["controller_data_path"]
 
@@ -92,8 +93,8 @@ class Experiment:
         backend_host = "http://webbackendsvc.cerebro.svc.cluster.local"
         url = backend_host + ":" + str(self.webapp_backend_port)
 
-        if os.path.isfile(os.path.join(self.user_repo_path, "requirements.txt")):
-            run("pip install -r {}".format(os.path.join(self.user_repo_path, "requirements.txt")))
+        if os.path.isfile(os.path.join(self.user_code_path, "requirements.txt")):
+            run("pip install -r {}".format(os.path.join(self.user_code_path, "requirements.txt")))
 
         # save params
         params_str = json.dumps(params)
@@ -103,7 +104,7 @@ class Experiment:
 
         # save code
         zippath = os.path.join(self.controller_data_path, "code")
-        shutil.make_archive(zippath, 'zip', self.user_repo_path)
+        shutil.make_archive(zippath, 'zip', self.user_code_path)
         files = {'file': open(zippath + ".zip", 'rb')}
         res = requests.post(url + "/save-code/cli", files=files)
 
