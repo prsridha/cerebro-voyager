@@ -4,9 +4,10 @@ import dill
 import base64
 
 import torch
-# from torchgpipe import GPipe
 from torch.utils.data import DataLoader
-from torchgpipe.balance import balance_by_time
+
+# from torchgpipe import GPipe
+# from torchgpipe.balance import balance_by_time
 
 from cerebro.parallelisms.parallelism_spec import Parallelism
 
