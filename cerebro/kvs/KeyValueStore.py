@@ -26,7 +26,7 @@ class KeyValueStore:
         self.r = r
 
         # get number of workers
-        cm = v1.read_namespaced_config_map(name='node-hardware-info', namespace=namespace)
+        cm = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=namespace)
         node_info = json.loads(cm.data["data"])
         self.num_workers = len(node_info)
 

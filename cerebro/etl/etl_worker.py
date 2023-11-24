@@ -153,7 +153,7 @@ class ETLWorker:
         self.shard_multiplicity = cm_data["shard_multiplicity"]
 
         # get node info
-        cm = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=namespace)
+        cm = v1.read_namespaced_config_map(name='cerebro-cerebro-node-hardware-info', namespace=namespace)
         node_info = json.loads(cm.data["data"])
         self.num_gpus = node_info["node" + str(worker_id)]["num_gpus"]
 
