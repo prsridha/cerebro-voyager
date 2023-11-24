@@ -9,7 +9,8 @@ from kubernetes import client, config
 class KeyValueStore:
     def __init__(self, init_tables=False):
         # get username and namespace
-        config.load_incluster_config()
+        # config.load_incluster_config()
+        config.load_kube_config()
         v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
         cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)

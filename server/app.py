@@ -43,7 +43,8 @@ def copy_files_to_pods(cli, root_path, cerebro_info):
     code_to_path = cerebro_info["user_repo_path"]
 
     # get controller pod name
-    config.load_incluster_config()
+    # config.load_incluster_config()
+    config.load_kube_config()
     v1 = client.CoreV1Api()
     cm1 = v1.read_namespaced_config_map(name='cerebro-info', namespace='cerebro')
     namespace = "cerebro"

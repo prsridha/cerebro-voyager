@@ -42,7 +42,8 @@ class MOPController:
         self.model_nworkers_trained = {}
 
         # load values from cerebro-info and node-hardware-info configmaps
-        config.load_incluster_config()
+        # config.load_incluster_config()
+        config.load_kube_config()
         v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
         cm1 = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)

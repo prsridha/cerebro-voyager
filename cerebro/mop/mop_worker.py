@@ -31,7 +31,8 @@ class CerebroWorker:
         self.worker_id = worker_id
 
         # load values from cerebro-info configmap
-        config.load_incluster_config()
+        # config.load_incluster_config()
+        config.load_kube_config()
         v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
         cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
