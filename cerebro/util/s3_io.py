@@ -1,10 +1,12 @@
 import os
 import boto3
 from pathlib import Path
+from cerebro.util.file_io import FileIO
 
 
-class S3IO:
+class S3IO(FileIO):
     def __init__(self, bucket_name, update_progress_fn=None) -> None:
+        super().__init__()
         self.progress = 0
         self.total_size = 0
         self.bucket_name = bucket_name
@@ -22,11 +24,11 @@ class S3IO:
         filtered_objs = [os.path.basename(obj.key) for obj in objs]
         return filtered_objs
 
-    def upload(self, local_path, s3_prefix='', is_dir=True):
+    def upload(self, local_path, remote_prefix, s3_prefix=''):
         s3_prefix = s3_prefix.split("/", 3)[3]
-
+        is_file = os.path.isfile(local_path)
         # get total size
-        if os.path.isfile(local_path):
+        if is_file:
             self.total_size = os.path.getsize(local_path)
         else:
             total_size = 0
@@ -37,7 +39,10 @@ class S3IO:
             self.total_size = total_size
 
         # upload file(s)
-        if is_dir:
+        if is_file:
+            s3_prefix = os.path.join(s3_prefix, local_path)
+            self.s3_client.upload_file(local_path, self.bucket_name, s3_prefix, Callback=self.update_progress)
+        else:
             for root, dirs, files in os.walk(local_path):
                 for file in files:
                     file_path = os.path.join(root, file)
@@ -45,9 +50,6 @@ class S3IO:
                     s3_key = os.path.join(s3_prefix, relative_path).replace('\\', '/')
 
                     self.s3_client.upload_file(file_path, self.bucket_name, s3_key, Callback=self.update_progress)
-        else:
-            s3_prefix = os.path.join(s3_prefix, local_path)
-            self.s3_client.upload_file(local_path, self.bucket_name, s3_prefix, Callback=self.update_progress)
 
     def download(self, local_path, s3_prefix, exclude_prefix):
         # local path is the dir in which the files are to be downloaded
