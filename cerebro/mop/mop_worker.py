@@ -31,12 +31,17 @@ class CerebroWorker:
         self.worker_id = worker_id
 
         # load values from cerebro-info configmap
-        # config.load_incluster_config()
-        config.load_kube_config()
-        v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
-        username = os.environ['USERNAME']
-        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+        cloud_provider = os.environ['CLOUD_PROVIDER']
+        if cloud_provider == "Voyager":
+            username = os.environ['USERNAME']
+            config.load_kube_config()
+            v1 = client.CoreV1Api()
+            cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+        else:
+            config.load_incluster_config()
+            v1 = client.CoreV1Api()
+            cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
         cm_data = json.loads(cm.data["data"])
         hostname = "0.0.0.0"
         port = cm_data["worker_rpc_port"]

@@ -42,12 +42,20 @@ class MOPController:
         self.model_nworkers_trained = {}
 
         # load values from cerebro-info and cerebro-node-hardware-info configmaps
-        # config.load_incluster_config()
-        config.load_kube_config()
-        v1 = client.CoreV1Api()
+
         namespace = os.environ['NAMESPACE']
-        username = os.environ['USERNAME']
-        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+        cloud_provider = os.environ['CLOUD_PROVIDER']
+
+        if cloud_provider == "Voyager":
+            config.load_kube_config()
+            v1 = client.CoreV1Api()
+            username = os.environ['USERNAME']
+            cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+        else:
+            config.load_incluster_config()
+            v1 = client.CoreV1Api()
+            cm1 = v1.read_namespaced_config_map(name='cerebro-info',namespace=namespace)
+
         cm1_data = json.loads(cm1.data["data"])
         username = cm1_data["username"]
         rpc_port = cm1_data["worker_rpc_port"]
@@ -66,8 +74,13 @@ class MOPController:
 
         # get MOP workers
         for i in range(self.num_nodes):
-            host_args = {"username": username, "pod_id": str(i), "namespace": namespace}
-            host = "http://{username}-cerebro-worker-{pod_id}.{username}-workersvc.{namespace}.svc.cluster.local".format(**host_args)
+            if cloud_provider == "Voyager":
+                host_args = {"username": username, "pod_id": str(i), "namespace": namespace}
+                host = "http://{username}-cerebro-worker-{pod_id}.{username}-workersvc.{namespace}.svc.cluster.local".format(**host_args)
+            else:
+                host_args = {"pod_id": str(i), "namespace": namespace}
+                host = "http://cerebro-worker-{pod_id}.workersvc.{namespace}.svc.cluster.local".format(**host_args)
+
             self.worker_names.append(host + ":" + str(rpc_port))
         self.workers = {i: xc.ServerProxy(ip) for i, ip in enumerate(self.worker_names)}
 

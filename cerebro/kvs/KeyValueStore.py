@@ -9,17 +9,23 @@ from kubernetes import client, config
 class KeyValueStore:
     def __init__(self, init_tables=False):
         # get username and namespace
-        # config.load_incluster_config()
-        config.load_kube_config()
-        v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
-        username = os.environ['USERNAME']
-        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
-        cm_data = json.loads(cm.data["data"])
-        username = cm_data["username"]
+        cloud_provider = os.environ['CLOUD_PROVIDER']
 
-        # create redis handle object
-        host = "{}-redis-master.{}.svc.cluster.local".format(username, namespace)
+        # load Kubernetes config, get Redis host
+        if cloud_provider == "Voyager":
+            config.load_kube_config()
+
+            username = os.environ['USERNAME']
+            host = "{}-redis-master.{}.svc.cluster.local".format(username, namespace)
+        else:
+            config.load_incluster_config()
+            host = "redis-master.{}.svc.cluster.local".format(namespace)
+
+        # create Kubernetes handle object
+        v1 = client.CoreV1Api()
+
+        # create Redis handle object
         port = 6379
         passwrd = "cerebro"
         r = redis.Redis(host, port, decode_responses=True, password=passwrd)

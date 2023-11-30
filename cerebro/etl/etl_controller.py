@@ -43,12 +43,17 @@ class ETLController:
         self.kvs.set_error("")
 
         # load values from cerebro-info configmap
-        # config.load_incluster_config()
-        config.load_kube_config()
-        v1 = client.CoreV1Api()
         namespace = os.environ['NAMESPACE']
-        username = os.environ['USERNAME']
-        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+        cloud_provider = os.environ['CLOUD_PROVIDER']
+        if cloud_provider == "Voyager":
+            username = os.environ['USERNAME']
+            config.load_kube_config()
+            v1 = client.CoreV1Api()
+            cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+        else:
+            config.load_incluster_config()
+            v1 = client.CoreV1Api()
+            cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
         cerebro_info = json.loads(cm.data["data"])
         user_code_path = cerebro_info["user_code_path"]
 
