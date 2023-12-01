@@ -43,17 +43,17 @@ class ETLController:
         self.kvs.set_error("")
 
         # load values from cerebro-info configmap
-        namespace = os.environ['NAMESPACE']
-        cloud_provider = os.environ['CLOUD_PROVIDER']
-        if cloud_provider == "Voyager":
-            username = os.environ['USERNAME']
+        self.namespace = os.environ['NAMESPACE']
+        self.cloud_provider = os.environ['CLOUD_PROVIDER']
+        if self.cloud_provider == "Voyager":
+            self.username = os.environ['USERNAME']
             config.load_kube_config()
             v1 = client.CoreV1Api()
-            cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+            cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
         else:
             config.load_incluster_config()
             v1 = client.CoreV1Api()
-            cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
+            cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=self.namespace)
         cerebro_info = json.loads(cm.data["data"])
         user_code_path = cerebro_info["user_code_path"]
 
@@ -61,7 +61,7 @@ class ETLController:
         sys.path.insert(0, user_code_path)
 
         # get node info
-        cm = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=namespace)
+        cm = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=self.namespace)
         self.node_info = json.loads(cm.data["data"])
         self.num_nodes = len(self.node_info)
 
@@ -94,6 +94,9 @@ class ETLController:
         for worker_id in range(self.num_nodes):
             self.kvs.etl_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
+        # scale up ETL workers
+        self.scale_workers(self.num_nodes)
+
         # mark as initializing
         self.kvs.etl_set_task(kvs_constants.ETL_TASK_INITIALIZE, "")
         self.logger.info("Marked ETL state as initializing workers")
@@ -109,6 +112,23 @@ class ETLController:
                 time.sleep(1)
         print("Initialized all ETL workers")
         self.logger.info("Initialized all ETL workers")
+
+    def scale_workers(self, num_workers):
+        # scale up ETL workers
+        if self.cloud_provider == "Voyager":
+            config.load_kube_config()
+            v1 = client.AppsV1Api()
+            statefulset = v1.read_namespaced_stateful_set(name="{}-cerebro-etl-worker".format(self.username),
+                                                          namespace=self.namespace)
+            statefulset.spec.replicas = num_workers
+            v1.replace_namespaced_stateful_set(name="{}-cerebro-etl-worker".format(self.username),
+                                               namespace=self.namespace, body=statefulset)
+        else:
+            config.load_incluster_config()
+            v1 = client.AppsV1Api()
+            statefulset = v1.read_namespaced_stateful_set(name="cerebro-etl-worker", namespace=self.namespace)
+            statefulset.spec.replicas = num_workers
+            v1.replace_namespaced_stateful_set(name="cerebro-etl-worker", namespace=self.namespace, body=statefulset)
 
     def download_metadata(self, mode=None):
         if not mode:
@@ -215,6 +235,10 @@ class ETLController:
             if err:
                 self.logger.error("Notified of error in Controller, exiting")
                 self.logger.error(str(err))
+
+                # scale down ETL workers to 0
+                self.scale_workers(0)
+
                 html_alert(err)
                 return
 

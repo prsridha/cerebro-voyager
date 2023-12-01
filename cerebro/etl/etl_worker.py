@@ -14,6 +14,7 @@ from kubernetes import client, config
 from pathos.multiprocessing import ProcessPool
 
 from cerebro.util.s3_io import S3IO
+from cerebro.util.voyager_io import VoyagerIO
 from cerebro.util.params import Params
 import cerebro.kvs.constants as kvs_constants
 from cerebro.kvs.KeyValueStore import KeyValueStore
@@ -36,7 +37,7 @@ class EtlProcess:
 
         self.logger.info("Initialized ETL Process object")
 
-    def download_file(self, filepath, s3):
+    def download_file(self, filepath, file_io):
         mode = self.mode
         params = self.params
 
@@ -56,7 +57,7 @@ class EtlProcess:
 
             # download file
             Path(os.path.dirname(to_path)).mkdir(parents=True, exist_ok=True)
-            s3.download(to_path, from_path, exclude_prefix)
+            file_io.download(to_path, from_path, exclude_prefix)
         else:
             # error
             pass
@@ -73,26 +74,38 @@ class EtlProcess:
         # create a KVS handle
         kvs = KeyValueStore()
 
+        file_io = None
         if self.params.etl["download_type"] == "url":
-            s3io = S3IO(self.params.bucket_name)
-        else:
-            s3io = None
+            cloud_provider = os.environ['CLOUD_PROVIDER']
+            if cloud_provider == "Voyager":
+                file_io = VoyagerIO()
+            elif cloud_provider == "AWS":
+                file_io = S3IO(self.params.bucket_name)
 
         res_partition = []
         for _, row in shard.iterrows():
             for i, feature_name in enumerate(features):
                 if self.is_feature_download[i]:
-                    self.download_file(row[feature_name], s3io)
+                    try:
+                        self.download_file(row[feature_name], file_io)
+                    except Exception as e:
+                        gc.collect()
+                        kvs.set_error(str(e))
+                        return
 
             # run through user's row prep function
             to_path = os.path.join(self.params.etl[self.mode]["multimedia_download_path"])
             row_id = row["id"]
-            if self.mode == "predict":
-                input_tensor, _ = self.etl_spec.row_prep(row, self.mode, to_path)
-                res_partition.append([row_id, input_tensor])
-            else:
-                input_tensor, output_tensor = self.etl_spec.row_prep(row, self.mode, to_path)
-                res_partition.append([row_id, input_tensor, output_tensor])
+            try:
+                if self.mode == "predict":
+                    input_tensor, _ = self.etl_spec.row_prep(row, self.mode, to_path)
+                    res_partition.append([row_id, input_tensor])
+                else:
+                    input_tensor, output_tensor = self.etl_spec.row_prep(row, self.mode, to_path)
+                    res_partition.append([row_id, input_tensor, output_tensor])
+            except Exception as e:
+                kvs.set_error(str(e))
+                return
 
             # compute conditional values
             is_multiple = (row_count > 0) and (row_count % m_factor == 0)
@@ -132,19 +145,20 @@ class ETLWorker:
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("etl-worker")
 
-        self.s3io = None
+        self.file_io = None
         self.params = None
         self.shards = None
         self.etl_spec = None
         self.metadata_df = None
         self.progress_queue = None
+        self.cloud_provider = None
         self.worker_id = worker_id
         self.is_feature_download = None
 
         # load values from cerebro-info configmap
         namespace = os.environ['NAMESPACE']
-        cloud_provider = os.environ['CLOUD_PROVIDER']
-        if cloud_provider == "Voyager":
+        self.cloud_provider = os.environ['CLOUD_PROVIDER']
+        if self.cloud_provider == "Voyager":
             username = os.environ['USERNAME']
             config.load_kube_config()
             v1 = client.CoreV1Api()
@@ -183,7 +197,11 @@ class ETLWorker:
 
         # create S3 I/O object for S3 reads and writes
         update_progress_fn = partial(self.kvs.etl_set_worker_progress, self.worker_id)
-        self.s3io = S3IO(self.params.bucket_name, update_progress_fn)
+
+        if self.cloud_provider == "Voyager":
+            self.file_io = VoyagerIO(update_progress_fn)
+        else:
+            self.file_io = S3IO(self.params.bucket_name, update_progress_fn)
 
         if self.kvs.etl_get_spec():
             self.etl_spec = self.kvs.etl_get_spec()
@@ -244,6 +262,12 @@ class ETLWorker:
         # track progress and update to KVS
         done = 0
         while done < self.num_process:
+            err = self.kvs.get_error()
+            if err:
+                # exit with an error code
+                self.logger.error("Caught error in Worker, exiting")
+                self.logger.error(str(err))
+
             progress = self.progress_queue.get()
             process_id = progress['process_id']
             progress_value = progress['progress']
@@ -285,8 +309,8 @@ class ETLWorker:
         self.logger.info("Beginning upload of processed ETL data")
         prefix = os.path.join(self.params.etl["etl_dir"], mode)
         output_path = self.params.etl[mode]["output_path"]
-        self.s3io.upload(output_path, prefix)
-        self.logger.info("Completed upload of {} data to S3 from worker {}".format(mode, self.worker_id))
+        self.file_io.upload(output_path, prefix)
+        self.logger.info("Completed upload of {} data to destination from worker {}".format(mode, self.worker_id))
 
     def download_processed_data(self, mode):
         self.logger.info("Beginning download of processed ETL data")
@@ -294,8 +318,8 @@ class ETLWorker:
         prefix = os.path.join(self.params.etl["etl_dir"], mode, "{}_data{}.pkl".format(mode, self.worker_id))
         Path(self.params.etl[mode]["output_path"]).mkdir(parents=True, exist_ok=True)
         output_path = self.params.etl[mode]["output_path"]
-        self.s3io.download(output_path, prefix, exclude_prefix)
-        self.logger.info("Completed download of {} data from S3 on worker {}".format(mode, self.worker_id))
+        self.file_io.download(output_path, prefix, exclude_prefix)
+        self.logger.info("Completed download of {} data from destination on worker {}".format(mode, self.worker_id))
 
     def serve_forever(self):
         self.logger.info("Started serving forever...")
@@ -334,7 +358,7 @@ class ETLWorker:
                     self.logger.info("ETL_TASK_PREPROCESS for {} data completed on worker{}.".format(
                         mode, self.worker_id))
                 elif task == kvs_constants.ETL_TASK_LOAD_PROCESSED:
-                    if not self.params or self.s3io:
+                    if not self.params or self.file_io:
                         self.initialize_worker()
                     self.download_processed_data(mode)
                     self.logger.info("ETL_TASK_LOAD_PROCESSED for {} data completed on worker {}.".format(
@@ -355,6 +379,13 @@ class ETLWorker:
             if not done:
                 prev_task_mode = (task, mode)
                 task, mode = self.kvs.etl_get_task()
+
+            # check for errors:
+            err = self.kvs.get_error()
+            if err:
+                # exit with an error code
+                self.logger.error("Caught error in Worker, exiting")
+                self.logger.error(str(err))
 
 
 def main():
