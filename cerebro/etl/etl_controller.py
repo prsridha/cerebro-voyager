@@ -330,7 +330,11 @@ class ETLController:
         self.exit_etl()
 
     def clean_up(self):
-        self.logger.info("Cleaning up controller and worker memory...")
+        # scale down workers
+        self.scale_workers(0)
+        self.logger.info("Scaled down ETL workers")
+
+        self.logger.info("Cleaning up controller and worker memory")
         del self.metadata_df
         gc.collect()
 
