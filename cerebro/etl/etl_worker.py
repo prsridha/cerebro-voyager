@@ -14,9 +14,9 @@ from kubernetes import client, config
 from pathos.multiprocessing import ProcessPool
 
 from cerebro.util.s3_io import S3IO
-from cerebro.util.voyager_io import VoyagerIO
 from cerebro.util.params import Params
 import cerebro.kvs.constants as kvs_constants
+from cerebro.util.voyager_io import VoyagerIO
 from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 

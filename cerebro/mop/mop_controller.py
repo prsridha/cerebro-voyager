@@ -16,6 +16,7 @@ from tqdm.notebook import tqdm_notebook
 from cerebro.util.s3_io import S3IO
 from cerebro.util.params import Params
 import cerebro.kvs.constants as kvs_constants
+from cerebro.util.voyager_io import VoyagerIO
 from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.parallelisms.parallelism_init import PARALLELISMS_LIST
@@ -44,9 +45,9 @@ class MOPController:
         # load values from cerebro-info and cerebro-node-hardware-info configmaps
 
         namespace = os.environ['NAMESPACE']
-        cloud_provider = os.environ['CLOUD_PROVIDER']
+        self.cloud_provider = os.environ['CLOUD_PROVIDER']
 
-        if cloud_provider == "Voyager":
+        if self.cloud_provider == "Voyager":
             config.load_kube_config()
             v1 = client.CoreV1Api()
             username = os.environ['USERNAME']
@@ -74,7 +75,7 @@ class MOPController:
 
         # get MOP workers
         for i in range(self.num_nodes):
-            if cloud_provider == "Voyager":
+            if self.cloud_provider == "Voyager":
                 host_args = {"username": username, "pod_id": str(i), "namespace": namespace}
                 host = "http://{username}-cerebro-worker-{pod_id}.{username}-workersvc.{namespace}.svc.cluster.local".format(**host_args)
             else:
@@ -114,21 +115,24 @@ class MOPController:
 
         # save checkpoints
         progress = tqdm_notebook(total=100, desc="Save Metrics", position=0, leave=True)
-        s3io = S3IO(self.params.bucket_name, progress.update)
+        if self.cloud_provider == "Voyager":
+            file_io = VoyagerIO(progress.update)
+        else:
+            file_io = S3IO(self.params.bucket_name, progress.update)
 
         chckpt_dir = os.path.join(base_dir, "checkpoints")
         Path(chckpt_dir).mkdir(parents=True, exist_ok=True)
         from_path = self.params.mop["checkpoint_storage_path"]
-        s3io.upload(from_path, chckpt_dir)
+        file_io.upload(from_path, chckpt_dir)
         print("Saved model checkpoints")
 
         # save user metrics
         metrics_dir = os.path.join(base_dir, "metrics")
         Path(metrics_dir).mkdir(parents=True, exist_ok=True)
         from_path = os.path.join(self.params.mop["metrics_storage_path"]["tensorboard"])
-        s3io.upload(from_path, metrics_dir)
+        file_io.upload(from_path, metrics_dir)
         from_path = os.path.join(self.params.mop["metrics_storage_path"]["user_metrics"])
-        s3io.upload(from_path, metrics_dir)
+        file_io.upload(from_path, metrics_dir)
         print("Saved model building metrics")
 
         print("Saved metrics to S3 at {}".format(base_dir))
@@ -136,15 +140,18 @@ class MOPController:
     def download_models(self):
         if self.params.mop["models_dir"]:
             downloaded_models_path = self.params.mop["checkpoint_storage_path"]
-            s3io = S3IO(self.params.bucket_name, None)
-            files = s3io.list_files(self.params.mop["models_dir"])
+            if self.cloud_provider == "Voyager":
+                file_io = VoyagerIO()
+            else:
+                file_io = S3IO(self.params.bucket_name, None)
+            files = file_io.list_files(self.params.mop["models_dir"])
             download_progress = tqdm_notebook(total=len(files), desc="Download Models", position=0, leave=True)
 
             for f in files:
                 prefix = os.path.join(self.params.mop["models_dir"], f)
                 download_path = os.path.join(downloaded_models_path, f.split(".")[0])
                 Path(os.path.dirname(download_path)).mkdir(parents=True, exist_ok=True)
-                s3io.download(download_path, prefix, self.params.mop["models_dir"])
+                file_io.download(download_path, prefix, self.params.mop["models_dir"])
                 download_progress.update(1)
 
     def get_runnable_model(self, worker_id):

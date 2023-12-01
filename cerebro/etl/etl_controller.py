@@ -13,6 +13,7 @@ from cerebro.util.s3_io import S3IO
 from cerebro.util.params import Params
 from cerebro.util.alerts import html_alert
 import cerebro.kvs.constants as kvs_constants
+from cerebro.util.voyager_io import VoyagerIO
 from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 
@@ -163,14 +164,17 @@ class ETLController:
         str_task = self.task_descriptions[kvs_constants.ETL_TASK_LOAD_PROCESSED]
         desc = "{} Progress".format(str_task + " " + str.capitalize("val"))
         val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
-        s3io = S3IO(self.params.bucket_name, val_progress)
+        if self.cloud_provider == "Voyager":
+            file_io = VoyagerIO(val_progress)
+        else:
+            file_io = S3IO(self.params.bucket_name, val_progress)
 
         # download val data from S3
         exclude_prefix = os.path.join(self.params.etl["etl_dir"], "val")
         prefix = os.path.join(exclude_prefix, "val_data.pkl")
         Path(self.params.etl["val"]["output_path"]).mkdir(parents=True, exist_ok=True)
         output_path = os.path.join(self.params.etl["val"]["output_path"], "val_data.pkl")
-        s3io.download(output_path, prefix, exclude_prefix)
+        file_io.download(output_path, prefix, exclude_prefix)
         self.logger.info("Completed download of val data from S3 on controller")
 
     def shard_data(self, mode):
