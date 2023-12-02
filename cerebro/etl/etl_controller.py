@@ -9,7 +9,6 @@ from pathlib import Path
 from kubernetes import client, config
 from tqdm.notebook import tqdm_notebook
 
-from cerebro.util.s3_io import S3IO
 from cerebro.util.params import Params
 from cerebro.util.alerts import html_alert
 import cerebro.kvs.constants as kvs_constants
@@ -45,16 +44,10 @@ class ETLController:
 
         # load values from cerebro-info configmap
         self.namespace = os.environ['NAMESPACE']
-        self.cloud_provider = os.environ['CLOUD_PROVIDER']
-        if self.cloud_provider == "Voyager":
-            self.username = os.environ['USERNAME']
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
-            cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
-        else:
-            config.load_incluster_config()
-            v1 = client.CoreV1Api()
-            cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=self.namespace)
+        self.username = os.environ['USERNAME']
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
         cerebro_info = json.loads(cm.data["data"])
         user_code_path = cerebro_info["user_code_path"]
 
@@ -116,20 +109,11 @@ class ETLController:
 
     def scale_workers(self, num_workers):
         # scale up ETL workers
-        if self.cloud_provider == "Voyager":
-            config.load_kube_config()
-            v1 = client.AppsV1Api()
-            statefulset = v1.read_namespaced_stateful_set(name="{}-cerebro-etl-worker".format(self.username),
-                                                          namespace=self.namespace)
-            statefulset.spec.replicas = num_workers
-            v1.replace_namespaced_stateful_set(name="{}-cerebro-etl-worker".format(self.username),
-                                               namespace=self.namespace, body=statefulset)
-        else:
-            config.load_incluster_config()
-            v1 = client.AppsV1Api()
-            statefulset = v1.read_namespaced_stateful_set(name="cerebro-etl-worker", namespace=self.namespace)
-            statefulset.spec.replicas = num_workers
-            v1.replace_namespaced_stateful_set(name="cerebro-etl-worker", namespace=self.namespace, body=statefulset)
+        config.load_kube_config()
+        v1 = client.AppsV1Api()
+        statefulset = v1.read_namespaced_stateful_set(name="{}-cerebro-etl-worker".format(self.username), namespace=self.namespace)
+        statefulset.spec.replicas = num_workers
+        v1.replace_namespaced_stateful_set(name="{}-cerebro-etl-worker".format(self.username), namespace=self.namespace, body=statefulset)
 
     def download_metadata(self, mode=None):
         if not mode:
@@ -164,10 +148,7 @@ class ETLController:
         str_task = self.task_descriptions[kvs_constants.ETL_TASK_LOAD_PROCESSED]
         desc = "{} Progress".format(str_task + " " + str.capitalize("val"))
         val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
-        if self.cloud_provider == "Voyager":
-            file_io = VoyagerIO(val_progress)
-        else:
-            file_io = S3IO(self.params.bucket_name, val_progress)
+        file_io = VoyagerIO(val_progress)
 
         # download val data from S3
         exclude_prefix = os.path.join(self.params.etl["etl_dir"], "val")

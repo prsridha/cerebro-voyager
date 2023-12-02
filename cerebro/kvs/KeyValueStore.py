@@ -10,17 +10,11 @@ class KeyValueStore:
     def __init__(self, init_tables=False):
         # get username and namespace
         namespace = os.environ['NAMESPACE']
-        cloud_provider = os.environ['CLOUD_PROVIDER']
 
         # load Kubernetes config, get Redis host
-        if cloud_provider == "Voyager":
-            config.load_kube_config()
-
-            username = os.environ['USERNAME']
-            host = "{}-redis-master.{}.svc.cluster.local".format(username, namespace)
-        else:
-            config.load_incluster_config()
-            host = "redis-master.{}.svc.cluster.local".format(namespace)
+        config.load_kube_config()
+        username = os.environ['USERNAME']
+        host = "{}-redis-master.{}.svc.cluster.local".format(username, namespace)
 
         # create Kubernetes handle object
         v1 = client.CoreV1Api()

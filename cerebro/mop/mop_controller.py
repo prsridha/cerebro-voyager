@@ -45,17 +45,10 @@ class MOPController:
         # load values from cerebro-info and cerebro-node-hardware-info configmaps
 
         namespace = os.environ['NAMESPACE']
-        self.cloud_provider = os.environ['CLOUD_PROVIDER']
-
-        if self.cloud_provider == "Voyager":
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
-            username = os.environ['USERNAME']
-            cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
-        else:
-            config.load_incluster_config()
-            v1 = client.CoreV1Api()
-            cm1 = v1.read_namespaced_config_map(name='cerebro-info',namespace=namespace)
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        username = os.environ['USERNAME']
+        cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
 
         cm1_data = json.loads(cm1.data["data"])
         username = cm1_data["username"]
@@ -75,12 +68,8 @@ class MOPController:
 
         # get MOP workers
         for i in range(self.num_nodes):
-            if self.cloud_provider == "Voyager":
-                host_args = {"username": username, "pod_id": str(i), "namespace": namespace}
-                host = "http://{username}-cerebro-worker-{pod_id}.{username}-workersvc.{namespace}.svc.cluster.local".format(**host_args)
-            else:
-                host_args = {"pod_id": str(i), "namespace": namespace}
-                host = "http://cerebro-worker-{pod_id}.workersvc.{namespace}.svc.cluster.local".format(**host_args)
+            host_args = {"username": username, "pod_id": str(i), "namespace": namespace}
+            host = "http://{username}-cerebro-worker-{pod_id}.{username}-workersvc.{namespace}.svc.cluster.local".format(**host_args)
 
             self.worker_names.append(host + ":" + str(rpc_port))
         self.workers = {i: xc.ServerProxy(ip) for i, ip in enumerate(self.worker_names)}
@@ -115,10 +104,7 @@ class MOPController:
 
         # save checkpoints
         progress = tqdm_notebook(total=100, desc="Save Metrics", position=0, leave=True)
-        if self.cloud_provider == "Voyager":
-            file_io = VoyagerIO(progress.update)
-        else:
-            file_io = S3IO(self.params.bucket_name, progress.update)
+        file_io = VoyagerIO(progress.update)
 
         chckpt_dir = os.path.join(base_dir, "checkpoints")
         Path(chckpt_dir).mkdir(parents=True, exist_ok=True)
@@ -140,10 +126,7 @@ class MOPController:
     def download_models(self):
         if self.params.mop["models_dir"]:
             downloaded_models_path = self.params.mop["checkpoint_storage_path"]
-            if self.cloud_provider == "Voyager":
-                file_io = VoyagerIO()
-            else:
-                file_io = S3IO(self.params.bucket_name, None)
+            file_io = VoyagerIO()
             files = file_io.list_files(self.params.mop["models_dir"])
             download_progress = tqdm_notebook(total=len(files), desc="Download Models", position=0, leave=True)
 

@@ -76,11 +76,7 @@ class EtlProcess:
 
         file_io = None
         if self.params.etl["download_type"] == "url":
-            cloud_provider = os.environ['CLOUD_PROVIDER']
-            if cloud_provider == "Voyager":
-                file_io = VoyagerIO()
-            elif cloud_provider == "AWS":
-                file_io = S3IO(self.params.bucket_name)
+            file_io = VoyagerIO()
 
         res_partition = []
         for _, row in shard.iterrows():
@@ -151,22 +147,15 @@ class ETLWorker:
         self.etl_spec = None
         self.metadata_df = None
         self.progress_queue = None
-        self.cloud_provider = None
         self.worker_id = worker_id
         self.is_feature_download = None
 
         # load values from cerebro-info configmap
         namespace = os.environ['NAMESPACE']
-        self.cloud_provider = os.environ['CLOUD_PROVIDER']
-        if self.cloud_provider == "Voyager":
-            username = os.environ['USERNAME']
-            config.load_kube_config()
-            v1 = client.CoreV1Api()
-            cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
-        else:
-            config.load_incluster_config()
-            v1 = client.CoreV1Api()
-            cm = v1.read_namespaced_config_map(name='cerebro-info', namespace=namespace)
+        username = os.environ['USERNAME']
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm_data = json.loads(cm.data["data"])
         user_code_path = cm_data["user_code_path"]
         self.shard_multiplicity = cm_data["shard_multiplicity"]
@@ -198,10 +187,7 @@ class ETLWorker:
         # create S3 I/O object for S3 reads and writes
         update_progress_fn = partial(self.kvs.etl_set_worker_progress, self.worker_id)
 
-        if self.cloud_provider == "Voyager":
-            self.file_io = VoyagerIO(update_progress_fn)
-        else:
-            self.file_io = S3IO(self.params.bucket_name, update_progress_fn)
+        self.file_io = VoyagerIO(update_progress_fn)
 
         if self.kvs.etl_get_spec():
             self.etl_spec = self.kvs.etl_get_spec()
