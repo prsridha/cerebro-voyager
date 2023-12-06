@@ -45,8 +45,8 @@ def display_buttons(url_data):
     button1 = widgets.Button(description=url_data[0][0], tooltip=url_data[0][1], layout=widgets.Layout(width='200px'))
     button1.on_click(_window_open_button)
 
-    button2 = widgets.Button(description=url_data[1][0], tooltip=url_data[1][1], layout=widgets.Layout(width='200px'))
-    button2.on_click(_window_open_button)
+    # button2 = widgets.Button(description=url_data[1][0], tooltip=url_data[1][1], layout=widgets.Layout(width='200px'))
+    # button2.on_click(_window_open_button)
 
     buttons_container = widgets.HBox([button1, button2])
     display(buttons_container, out)
@@ -75,10 +75,8 @@ class Experiment:
         v1 = client.CoreV1Api()
         cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm_data = json.loads(cm.data["data"])
-        self.cluster_name = cm_data["cluster_name"]
         self.user_code_path = cm_data["user_code_path"]
-        self.webapp_backend_port = cm_data["webapp_backend_port"]
-        self.controller_data_path = cm_data["controller_data_path"]
+        self.tensorboard_port = cm_data["tensorboard_node_port"]
 
         self.logger.info("Starting Cerebro session...")
 
@@ -89,41 +87,18 @@ class Experiment:
         self.download_misc_files()
 
     def initialize_via_cli(self, params):
-        backend_host = "http://webbackendsvc.cerebro.svc.cluster.local"
-        url = backend_host + ":" + str(self.webapp_backend_port)
-
         if os.path.isfile(os.path.join(self.user_code_path, "requirements.txt")):
             run("pip install -r {}".format(os.path.join(self.user_code_path, "requirements.txt")))
+            self.logger.info("Installed user's python dependencies")
 
         # save params
-        params_str = json.dumps(params)
-        headers = {"Content-Type": "application/json"}
-        res = requests.post(url + "/params", data=params_str, headers=headers)
-        assert res.json()["status"] == 200
-
-        # save code
-        zippath = os.path.join(self.controller_data_path, "code")
-        shutil.make_archive(zippath, 'zip', self.user_code_path)
-        files = {'file': open(zippath + ".zip", 'rb')}
-        res = requests.post(url + "/save-code/cli", files=files)
-
-        p = Path(zippath + ".zip")
-        p.unlink()
-        assert res.json()["status"] == 200
+        self.kvs.set_dataset_locators(params)
 
         # get URLs
-        res = requests.get(url + "/get-urls")
-        assert res.json()["status"] == 200
-        urls = res.json()["message"]
-
-        url_data = [
-            ("Grafana Dashboard", urls["grafanaURL"]),
-            ("Tensorboard Dashboard", urls["tensorboardURL"])
-        ]
+        tensorboard_url = "http://localhost:{}".format(self.tensorboard_port)
+        url_data = [("Tensorboard Dashboard", tensorboard_url)]
         display_buttons(url_data)
 
-        # wait for AWS Auth to complete
-        time.sleep(10)
         self.logger.info("Initialized via CLI")
 
     def download_misc_files(self):

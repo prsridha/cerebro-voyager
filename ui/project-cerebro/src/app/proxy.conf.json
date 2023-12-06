@@ -1,7 +1,0 @@
-{
-    "/params/*": {
-        "target": "http://webbackendsvc.cerebro.svc.cluster.local:8080",
-        "secure": false,
-        "logLevel": "debug"
-    }
-}

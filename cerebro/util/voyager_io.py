@@ -1,10 +1,9 @@
 import os
 import shutil
 from pathlib import Path
-from cerebro.util.file_io import FileIO
 
 
-class VoyagerIO(FileIO):
+class VoyagerIO:
     def __init__(self, update_progress_fn=None):
         super().__init__()
         self.progress = 0
