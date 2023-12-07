@@ -19,11 +19,8 @@ elif [[ "$PLATFORM" == "dev" ]]; then
 
         # make all run files executable
         chmod +x /cerebro-core/init.sh
-        chmod +x /cerebro-core/init.sh
         chmod +x /cerebro-core/cerebro/etl/run_etl.sh
         chmod +x /cerebro-core/cerebro/mop/run_mop.sh
-        chmod +x /cerebro-core/server/run_server.sh
-        chmod +x /cerebro-core/ui/run_ui.sh
     else
         echo "An error occurred while running git clone."
     fi
