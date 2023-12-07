@@ -1,5 +1,3 @@
-
-
 class ETLSpec:
     def __init__(self):
         pass

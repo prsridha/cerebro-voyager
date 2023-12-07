@@ -3,7 +3,6 @@ import gc
 import sys
 import json
 import time
-import boto3
 import pandas as pd
 from pathlib import Path
 from kubernetes import client, config
