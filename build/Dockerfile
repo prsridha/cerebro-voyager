@@ -4,6 +4,10 @@ FROM prsridha/cerebro-base-voyager:latest
 # CHANGE THIS BASED ON YOUR ENVIRONMENT
 ARG ENVIRONMENT=dev
 
+# create a new user - xmen
+RUN groupadd -g 1000 xmen_group && \
+    useradd -u 1000 -g 1000 -ms /bin/bash xmen
+
 # update packages
 RUN apt-get update
 
@@ -30,15 +34,13 @@ RUN pip install -v -e /cerebro-core
 # Copy sync.sh script
 COPY build/sync.sh /sync.sh
 
-# Set executable permissions
-RUN chmod +x /cerebro-core/init.sh
+# Set permissions to user
+RUN chmod -R +rx /cerebro-core
 RUN chmod +x /sync.sh
-RUN chmod +x /cerebro-core/cerebro/etl/run_etl.sh
-RUN chmod +x /cerebro-core/cerebro/mop/run_mop.sh
 
 # make it permissive if in dev enviroment
 RUN if [ "$ENVIRONMENT" = "dev" ]; then \
-        chmod -R 777 /cerebro-core; \
+        chown -R xmen:xmen_group /cerebro-core; \
     fi
 
 # dummy task (Kubernetes will overrride)
