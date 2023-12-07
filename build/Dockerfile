@@ -38,9 +38,8 @@ RUN chmod +x /cerebro-core/cerebro/mop/run_mop.sh
 
 # make it permissive if in dev enviroment
 RUN if [ "$ENVIRONMENT" = "dev" ]; then \
-        chmod -R 777 /cerebro-core \
+        chmod -R 777 /cerebro-core; \
     fi
-
 
 # dummy task (Kubernetes will overrride)
 ENTRYPOINT ["tail", "-f", "/dev/null"]
