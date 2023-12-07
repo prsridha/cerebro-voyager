@@ -14,6 +14,9 @@ elif [[ "$PLATFORM" == "dev" ]]; then
     if [ $clone_status -eq 0 ]; then
         echo "Successfully cloned the repository."
 
+        # set permissions
+        chmod -R +rx /cerebro-core
+
         # add dir as safe in git
         git config --global --add safe.directory /cerebro-core
 
