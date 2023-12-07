@@ -1,9 +1,5 @@
 import os
 import json
-import time
-import boto3
-import shutil
-import requests
 import subprocess
 from pathlib import Path
 import ipywidgets as widgets
@@ -11,6 +7,7 @@ from kubernetes import client, config
 from IPython.display import display, Javascript
 
 from cerebro.util.params import Params
+from cerebro.util.voyager_io import VoyagerIO
 from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.etl.etl_controller import ETLController
 from cerebro.mop.mop_controller import MOPController
@@ -102,20 +99,14 @@ class Experiment:
         self.logger.info("Initialized via CLI")
 
     def download_misc_files(self):
-        params = self.params
-        s3 = boto3.client('s3')
+        file_io = VoyagerIO()
 
-        for misc_path in params.miscellaneous["download_paths"]:
-            bucket_name = misc_path.split("/")[2]
-            from_path = "/".join(misc_path.split("/")[3:])
+        Path(self.params.miscellaneous["output_path"]).mkdir(parents=True, exist_ok=True)
+        for from_path in self.params.miscellaneous["download_paths"]:
             filename = from_path.split("/")[-1]
-            to_path = os.path.join(params.miscellaneous["output_path"], filename)
-
-            # create the to_path directory if it doesn't exist
-            to_path_dir = "/".join(to_path.split("/")[:-1])
-            Path(to_path_dir).mkdir(parents=True, exist_ok=True)
-
-            s3.download_file(bucket_name, from_path, to_path)
+            to_path = os.path.join(self.params.miscellaneous["output_path"], filename)
+            exclude = os.path.dirname(from_path)
+            file_io.download(to_path, from_path, exclude)
 
         print("Downloaded miscellaneous files")
         self.logger.info("Downloaded miscellaneous files")
