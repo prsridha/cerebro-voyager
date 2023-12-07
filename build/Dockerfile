@@ -35,7 +35,7 @@ RUN pip install -v -e /cerebro-core
 COPY build/sync.sh /sync.sh
 
 # Set permissions to user
-RUN chmod -R +rx /cerebro-core
+RUN chmod -R +rx /cerebro-core/*
 RUN chmod +x /sync.sh
 
 # make it permissive if in dev enviroment
