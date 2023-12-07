@@ -48,7 +48,7 @@ def display_buttons(url_data):
     # button2 = widgets.Button(description=url_data[1][0], tooltip=url_data[1][1], layout=widgets.Layout(width='200px'))
     # button2.on_click(_window_open_button)
 
-    buttons_container = widgets.HBox([button1, button2])
+    buttons_container = widgets.HBox([button1])
     display(buttons_container, out)
 
 
