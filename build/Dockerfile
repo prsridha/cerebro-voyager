@@ -5,8 +5,8 @@ FROM prsridha/cerebro-base-voyager:latest
 ARG ENVIRONMENT=dev
 
 # create a new user - xmen
-RUN groupadd -g 1000 xmen_group && \
-    useradd -u 1000 -g 1000 -ms /bin/bash xmen
+# RUN groupadd -g 1000 xmen_group && \
+#    useradd -u 1000 -g 1000 -ms /bin/bash xmen
 
 # update packages
 RUN apt-get update
@@ -39,9 +39,9 @@ RUN chmod -R +rx /cerebro-core
 RUN chmod +x /sync.sh
 
 # make it permissive if in dev enviroment
-RUN if [ "$ENVIRONMENT" = "dev" ]; then \
-        chown -R xmen:xmen_group /cerebro-core; \
-    fi
+# RUN if [ "$ENVIRONMENT" = "dev" ]; then \
+#        chown -R xmen:xmen_group /cerebro-core; \
+#    fi
 
 # dummy task (Kubernetes will overrride)
 ENTRYPOINT ["tail", "-f", "/dev/null"]
