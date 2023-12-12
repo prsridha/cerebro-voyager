@@ -1,15 +1,14 @@
 {
-    "train_main": "s3://cerebro-imagenet-ca/Metadata/train.csv",
-    "val_main": "s3://cerebro-imagenet-ca/Metadata/valid.csv",
-    "test_main": "s3://cerebro-imagenet-ca/Metadata/valid.csv",
-    "predict_main": "s3://cerebro-imagenet-ca/Metadata/test.csv",
-    "train_dir": "s3://cerebro-imagenet-ca/Data/CLS-LOC/train",
-    "val_dir": "s3://cerebro-imagenet-ca/Data/CLS-LOC/val",
-    "test_dir": "s3://cerebro-imagenet-ca/Data/CLS-LOC/val",
-    "predict_dir": "s3://cerebro-imagenet-ca/Data/CLS-LOC/test",
+    "train_main": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Metadata/train.csv",
+    "val_main": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Metadata/valid.csv",
+    "test_main": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Metadata/valid.csv",
+    "predict_main": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Metadata/test.csv",
+    "train_dir": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Data/CLS-LOC/train",
+    "val_dir": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Data/CLS-LOC/val",
+    "test_dir": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Data/CLS-LOC/val",
+    "predict_dir": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Data/CLS-LOC/test",
     "misc": [
-        "s3://cerebro-imagenet-ca/Metadata/imagenet_label_mapping.json"
+        "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Metadata/imagenet_label_mapping.json"
     ],
-    "etl_dir": "s3://cerebro-imagenet-ca/ProcessedData",
-    "models_dir": "s3://cerebro-imagenet-ca/Models"
-}
+    "etl_dir": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/ProcessedData"
+}]
