@@ -17,7 +17,8 @@ elif [[ "$PLATFORM" == "dev" ]]; then
         # set permissions
         chmod -R +rx /cerebro-core
 
-        # add dir as safe in git
+        # add dir as safe in git and ignore file permission changes
+        git config core.fileMode false
         git config --global --add safe.directory /cerebro-core
 
     else
