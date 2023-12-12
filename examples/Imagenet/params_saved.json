@@ -11,4 +11,4 @@
         "/voyager/ceph/users/prsridha/s3_buckets/imagenet/Metadata/imagenet_label_mapping.json"
     ],
     "etl_dir": "/voyager/ceph/users/prsridha/s3_buckets/imagenet/ProcessedData"
-}]
+}
