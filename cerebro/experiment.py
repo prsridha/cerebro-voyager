@@ -4,8 +4,7 @@ import subprocess
 from pathlib import Path
 import ipywidgets as widgets
 from kubernetes import client, config
-from IPython.display import IFrame
-from IPython.display import display, Javascript
+from IPython.display import display, IFrame
 
 from cerebro.util.params import Params
 from cerebro.util.voyager_io import VoyagerIO
@@ -35,19 +34,18 @@ def run(cmd, shell=True, capture_output=True, text=True, halt_exception=True):
 
 
 def display_buttons(url_data):
-    out = widgets.Output()
+    button = widgets.ToggleButton(description="Tensorboard Dashboard", tooltip="", layout=widgets.Layout(width='200px'))
+    output = widgets.Output()
 
-    def _window_open_button(url):
-        IFrame(src=url_data[1], width='100%', height='75%')
-        # display(Javascript(f'window.open("{url.tooltip}");'))
+    def on_button_clicked(obj):
+        with output:
+            if obj["new"]:
+                display(IFrame(src="http://localhost:6006", width='100%', height='1000px'))
+            else:
+                output.clear_output()
 
-    print("Got button url - ", url_data[0], url_data[1])
-
-    button1 = widgets.Button(description=url_data[0], tooltip=url_data[1], layout=widgets.Layout(width='200px'))
-    button1.on_click(_window_open_button)
-
-    buttons_container = widgets.HBox([button1])
-    display(buttons_container, out)
+    button.observe(on_button_clicked, 'value')
+    display(button, output)
 
 
 class Experiment:
