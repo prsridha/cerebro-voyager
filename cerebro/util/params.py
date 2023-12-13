@@ -34,11 +34,16 @@ class Params:
         kvs = KeyValueStore()
         params = kvs.get_dataset_locators()
 
-        # replace dataset hostPath with mountPath
         pattern = r"\/voyager\/ceph\/.*\/datasets"
         new_params = {}
         for k, v in params.items():
-            new_params[k] = re.sub(pattern, "/datasets", v)
+            if k == "misc":
+                misc_v = []
+                for i in v:
+                    misc_v.append(re.sub(pattern, "/datasets", i))
+                new_params[k] = misc_v
+            else:
+                new_params[k] = re.sub(pattern, "/datasets", v)
         params = new_params
 
         # set misc params
