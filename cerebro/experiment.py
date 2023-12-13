@@ -39,11 +39,8 @@ def display_buttons(url_data):
     def _window_open_button(url):
         display(Javascript(f'window.open("{url.tooltip}");'))
 
-    button1 = widgets.Button(description=url_data[0][0], tooltip=url_data[0][1], layout=widgets.Layout(width='200px'))
+    button1 = widgets.Button(description=url_data[0], tooltip=url_data[1], layout=widgets.Layout(width='200px'))
     button1.on_click(_window_open_button)
-
-    # button2 = widgets.Button(description=url_data[1][0], tooltip=url_data[1][1], layout=widgets.Layout(width='200px'))
-    # button2.on_click(_window_open_button)
 
     buttons_container = widgets.HBox([button1])
     display(buttons_container, out)
@@ -95,7 +92,7 @@ class Experiment:
 
         # get URLs
         tensorboard_url = "http://localhost:{}".format(self.tensorboard_port)
-        url_data = [("Tensorboard Dashboard", tensorboard_url)]
+        url_data = ("Tensorboard Dashboard", tensorboard_url)
         display_buttons(url_data)
 
         self.logger.info("Initialized via CLI")
