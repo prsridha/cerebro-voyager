@@ -114,6 +114,11 @@ class ETLController:
         statefulset.spec.replicas = num_workers
         v1.replace_namespaced_stateful_set(name="{}-cerebro-etl-worker".format(self.username), namespace=self.namespace, body=statefulset)
 
+        current_replicas = v1.read_namespaced_stateful_set(name="{}-cerebro-etl-worker".format(self.username), namespace=self.namespace).spec.replicas
+        while current_replicas != num_workers:
+            time.sleep(1)
+            current_replicas = v1.read_namespaced_stateful_set(name="{}-cerebro-etl-worker".format(self.username), namespace=self.namespace).spec.replicas
+
     def download_metadata(self, mode=None):
         if not mode:
             remote_urls = [
