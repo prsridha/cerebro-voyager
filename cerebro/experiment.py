@@ -84,8 +84,9 @@ class Experiment:
         self.mop = MOPController()
 
     def initialize_via_cli(self, params):
-        if os.path.isfile(os.path.join(self.user_code_path, "requirements.txt")):
-            run("pip install -r {} --root-user-action=ignore".format(os.path.join(self.user_code_path, "requirements.txt")))
+        requirements_path = os.path.join(self.user_code_path, "requirements.txt")
+        if os.path.isfile(requirements_path):
+            run("pip install -r {} --root-user-action=ignore".format(requirements_path), halt_exception=False)
             self.logger.info("Installed user's python dependencies")
 
         # save params
