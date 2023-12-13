@@ -28,18 +28,11 @@ class Params:
         # assign all variables to the class
         self.etl = config.get('etl')
         self.mop = config.get('mop')
-        self.bucket_name = config.get('bucket_name')
         self.miscellaneous = config.get('miscellaneous')
 
     def _load_from_kvs(self):
         kvs = KeyValueStore()
         params = kvs.get_dataset_locators()
-
-        # get bucket name
-        s3_url_pattern = r"'s3:\/\/.*?'"
-        match = re.search(s3_url_pattern, str(params))
-        s3_url = match.group().replace("'", "") if match else None
-        bucket_name = s3_url.split("/")[2]
 
         # set misc params
         miscellaneous = {
@@ -56,7 +49,6 @@ class Params:
         return {
             "etl": etl,
             "mop": mop,
-            "bucket_name": bucket_name,
             "miscellaneous": miscellaneous
         }
 
