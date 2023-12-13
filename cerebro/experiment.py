@@ -109,7 +109,6 @@ class Experiment:
             exclude = os.path.dirname(from_path)
             file_io.download(to_path, from_path, exclude)
 
-        print("Downloaded miscellaneous files")
         self.logger.info("Downloaded miscellaneous files")
 
     def run_etl(self, etl_spec=None, fraction=1, seed=0):
