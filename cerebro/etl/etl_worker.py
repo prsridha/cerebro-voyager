@@ -173,7 +173,7 @@ class ETLWorker:
         self.num_process = cores if cores >= 48 else 48
 
         # initialize necessary handlers
-        self.kvs = KeyValueStore(init_tables=True)
+        self.kvs = KeyValueStore()
         self.p = ProcessPool(self.num_process)
 
         self.logger.info("Starting Cerebro worker {}".format(worker_id))
