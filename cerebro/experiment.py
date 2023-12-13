@@ -69,7 +69,7 @@ class Experiment:
         cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm_data = json.loads(cm.data["data"])
         self.user_code_path = cm_data["user_code_path"]
-        self.tensorboard_port = cm_data["tensorboard_node_port"]
+        self.tensorboard_port = cm_data["tensorboard_port"]
 
         self.logger.info("Starting Cerebro session...")
 
