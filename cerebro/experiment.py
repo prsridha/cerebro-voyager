@@ -85,7 +85,7 @@ class Experiment:
 
     def initialize_via_cli(self, params):
         if os.path.isfile(os.path.join(self.user_code_path, "requirements.txt")):
-            run("pip install -r {}".format(os.path.join(self.user_code_path, "requirements.txt")))
+            run("pip install -r {} --root-user-action=ignore".format(os.path.join(self.user_code_path, "requirements.txt")))
             self.logger.info("Installed user's python dependencies")
 
         # save params
