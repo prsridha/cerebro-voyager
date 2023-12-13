@@ -61,10 +61,6 @@ class Experiment:
         self.sub_epoch_spec = None
         self.kvs = KeyValueStore(init_tables=True)
 
-        # create controller objects
-        self.etl = ETLController()
-        self.mop = MOPController()
-
         # load values from cerebro-info configmap
         namespace = os.environ['NAMESPACE']
         username = os.environ['USERNAME']
@@ -83,6 +79,10 @@ class Experiment:
         self.params = Params()
         self.download_misc_files()
 
+        # create controller objects
+        self.etl = ETLController()
+        self.mop = MOPController()
+
     def initialize_via_cli(self, params):
         if os.path.isfile(os.path.join(self.user_code_path, "requirements.txt")):
             run("pip install -r {}".format(os.path.join(self.user_code_path, "requirements.txt")))
@@ -90,6 +90,7 @@ class Experiment:
 
         # save params
         self.kvs.set_dataset_locators(params)
+        self.logger.info("Set dataset locators on KVS")
 
         # get URLs
         tensorboard_url = "http://localhost:{}".format(self.tensorboard_port)
