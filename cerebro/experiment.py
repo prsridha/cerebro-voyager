@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 import ipywidgets as widgets
 from kubernetes import client, config
+from IPython.display import IFrame
 from IPython.display import display, Javascript
 
 from cerebro.util.params import Params
@@ -37,7 +38,10 @@ def display_buttons(url_data):
     out = widgets.Output()
 
     def _window_open_button(url):
-        display(Javascript(f'window.open("{url.tooltip}");'))
+        IFrame(src=url_data[1], width='100%', height='75%')
+        # display(Javascript(f'window.open("{url.tooltip}");'))
+
+    print("Got button url - ", url_data[0], url_data[1])
 
     button1 = widgets.Button(description=url_data[0], tooltip=url_data[1], layout=widgets.Layout(width='200px'))
     button1.on_click(_window_open_button)
