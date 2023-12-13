@@ -7,7 +7,6 @@ import itertools
 import pandas as pd
 from pathlib import Path
 from copy import deepcopy
-import xmlrpc.client as xc
 from datetime import datetime
 from IPython.display import display
 from kubernetes import client, config
@@ -51,7 +50,6 @@ class MOPController:
 
         cm1_data = json.loads(cm1.data["data"])
         username = cm1_data["username"]
-        rpc_port = cm1_data["worker_rpc_port"]
 
         cm2 = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=namespace)
         self.num_nodes = len(json.loads(cm2.data["data"]))
@@ -66,12 +64,7 @@ class MOPController:
                 Path(full_path).mkdir(parents=True, exist_ok=True)
 
         # get MOP workers
-        for i in range(self.num_nodes):
-            host_args = {"username": username, "pod_id": str(i), "namespace": namespace}
-            host = "http://{username}-cerebro-worker-{pod_id}.{username}-workersvc.{namespace}.svc.cluster.local".format(**host_args)
-
-            self.worker_names.append(host + ":" + str(rpc_port))
-        self.workers = {i: xc.ServerProxy(ip) for i, ip in enumerate(self.worker_names)}
+        self.workers = list(range(self.num_nodes))
 
     def initialize_controller(self, num_epochs, param_grid, sub_epoch_spec):
         self.num_epochs = num_epochs
