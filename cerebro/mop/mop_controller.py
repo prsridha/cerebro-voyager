@@ -57,7 +57,7 @@ class MOPController:
         self.num_nodes = len(json.loads(cm2.data["data"]))
 
         # save sub-epoch func in KVS
-        self.kvs = KeyValueStore(init_tables=True)
+        self.kvs = KeyValueStore()
 
         # create Metrics directories
         for mode in ["train", "val"]:

@@ -40,12 +40,7 @@ class KeyValueStore:
         self.num_workers = len(node_info)
 
         # initialize KVS with default values
-        if os.path.isfile(self.key_paths["kvs_init"]):
-            with open(self.key_paths["kvs_init"]) as f:
-                init_done = str(json.load(f)) == "true"
-        else:
-            init_done = False
-        if init_tables and not init_done:
+        if init_tables:
             self.initialize_tables()
 
     def initialize_tables(self):

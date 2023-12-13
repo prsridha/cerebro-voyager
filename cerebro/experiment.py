@@ -59,7 +59,7 @@ class Experiment:
         self.num_epochs = None
         self.param_grid = None
         self.sub_epoch_spec = None
-        self.kvs = KeyValueStore()
+        self.kvs = KeyValueStore(init_tables=True)
 
         # create controller objects
         self.etl = ETLController()

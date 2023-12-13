@@ -35,8 +35,8 @@ class ETLController:
         self.params = Params()
 
         # create Key Value Store handle and in initialize tables
-        self.kvs = KeyValueStore(init_tables=True)
-        self.logger.info("Created key value store handle and initialized tables")
+        self.kvs = KeyValueStore()
+        self.logger.info("Created key value store handle")
 
         # reset all errors
         self.kvs.set_error("")
