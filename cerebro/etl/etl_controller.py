@@ -20,7 +20,6 @@ class ETLController:
     logger = logging.create_logger("etl")
 
     def __init__(self):
-        self.s3 = None
         self.metadata_df = None
         self.etl_spec = None
         self.fraction = None
@@ -133,18 +132,12 @@ class ETLController:
         for remote_url in remote_urls:
             # download the metadata files from remote
             if self.params.etl["download_type"] == "url":
-                self.s3 = boto3.client('s3')
-                bucket_name = remote_url.split("/")[2]
-                from_path = "/".join(remote_url.split("/")[3:])
-                to_path = self.params.etl[mode]["metadata_download_path"]
-
-                # create the to_path directory if it doesn't exist
-                to_path_dir = "/".join(to_path.split("/")[:-1])
-                Path(to_path_dir).mkdir(parents=True, exist_ok=True)
-
-                self.s3.download_file(bucket_name, from_path, to_path)
-
-                # print("Downloaded {} metadata".format(mode if mode else "all"))
+                file_io = VoyagerIO()
+                exclude_prefix = remote_url
+                prefix = remote_url
+                output_path = self.params.etl[mode]["metadata_download_path"]
+                Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
+                file_io.download(output_path, prefix, exclude_prefix)
                 self.logger.info("Downloaded {} metadata".format(mode if mode else "all"))
 
     def download_processed_val_data(self):
@@ -154,13 +147,13 @@ class ETLController:
         val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
         file_io = VoyagerIO(val_progress)
 
-        # download val data from S3
+        # download val data from Ceph
         exclude_prefix = os.path.join(self.params.etl["etl_dir"], "val")
         prefix = os.path.join(exclude_prefix, "val_data.pkl")
         Path(self.params.etl["val"]["output_path"]).mkdir(parents=True, exist_ok=True)
         output_path = os.path.join(self.params.etl["val"]["output_path"], "val_data.pkl")
         file_io.download(output_path, prefix, exclude_prefix)
-        self.logger.info("Completed download of val data from S3 on controller")
+        self.logger.info("Completed download of val data from Ceph on controller")
 
     def shard_data(self, mode):
         # load seed value
