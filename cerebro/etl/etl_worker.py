@@ -183,9 +183,8 @@ class ETLWorker:
         # initialize params and get features to download
         self.params = Params()
 
-        # create S3 I/O object for S3 reads and writes
+        # create I/O object for reads and writes
         update_progress_fn = partial(self.kvs.etl_set_worker_progress, self.worker_id)
-
         self.file_io = VoyagerIO(update_progress_fn)
 
         if self.kvs.etl_get_spec():
