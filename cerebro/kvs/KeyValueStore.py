@@ -13,7 +13,8 @@ class KeyValueStore:
         self.cursor = self.conn.cursor()
 
         # create tables
-        tables_file = "tables.sql"
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        tables_file = os.path.join(current_dir, "tables.sql")
         with open(tables_file, 'r') as file:
             tables_script = file.read()
         self.cursor.executescript(tables_script)
