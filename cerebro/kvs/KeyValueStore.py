@@ -153,7 +153,7 @@ class KeyValueStore:
         query = """
             INSERT OR REPLACE
             INTO etl_task (id, task, mode)
-            VALUES (?, ?)
+            VALUES (?, ?, ?)
         """
         self.cursor.execute(query, (0, task, mode))
         self.conn.commit()
