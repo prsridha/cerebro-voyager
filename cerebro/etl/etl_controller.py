@@ -106,6 +106,7 @@ class ETLController:
         self.logger.info("Initialized all ETL workers")
 
     def scale_workers(self, num_workers):
+        print("Scaling ETL workers to {}".format(num_workers))
         # scale up ETL workers
         config.load_kube_config()
         v1 = client.AppsV1Api()
