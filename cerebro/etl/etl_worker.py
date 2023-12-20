@@ -136,7 +136,11 @@ class EtlProcess:
 
 
 class ETLWorker:
-    def __init__(self, worker_id):
+    def __init__(self):
+        # obtain worker_id from env variable
+        worker_name = os.environ.get("ORDINAL_ID")
+        worker_id = int(worker_name.split("-")[-1])
+
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("etl-worker")
 
@@ -373,13 +377,7 @@ class ETLWorker:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Argument parser for generating model predictions.')
-    parser.add_argument('--id', help='Worker ID', default="0", type=str)
-    args = parser.parse_args()
-    worker_id = int(args.id.split("-")[-1])
-
-    worker = ETLWorker(worker_id)
+    worker = ETLWorker()
     worker.serve_forever()
 
 

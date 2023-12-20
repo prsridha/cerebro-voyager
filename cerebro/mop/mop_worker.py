@@ -20,7 +20,11 @@ from cerebro.parallelisms.parallelism_init import get_parallelism_executor
 from torch.utils.data import Subset
 
 class CerebroWorker:
-    def __init__(self, worker_id):
+    def __init__(self):
+        # obtain worker_id from env variable
+        worker_name = os.environ.get("ORDINAL_ID")
+        worker_id = int(worker_name.split("-")[-1])
+
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("mop-worker")
         self.user_logger = logging.create_logger("mop-user")
@@ -230,13 +234,7 @@ class CerebroWorker:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Argument parser for generating model predictions.')
-    parser.add_argument('--id', help='Worker ID', default="0", type=str)
-    args = parser.parse_args()
-    worker_id = int(args.id.split("-")[-1])
-
-    worker = CerebroWorker(worker_id)
+    worker = CerebroWorker()
     worker.server_forever()
 
 

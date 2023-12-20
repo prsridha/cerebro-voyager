@@ -11,7 +11,7 @@ if [ -f /user/requirements.txt ]; then
 fi
 
 # run etl worker
-python3 /cerebro-core/cerebro/etl/etl_worker.py --id $WORKER_ID_SELF
+python3 /cerebro-core/cerebro/etl/etl_worker.py
 # sleep infinity
 
 # check if command exited with error code
