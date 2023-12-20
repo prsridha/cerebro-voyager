@@ -7,9 +7,6 @@ from cerebro.kvs.KeyValueStore import KeyValueStore
 
 class Params:
     def __init__(self):
-        pass
-
-    def _load_params(self):
         # load from KVS
         config = self._load_from_kvs()
 
