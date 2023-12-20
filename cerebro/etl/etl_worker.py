@@ -108,7 +108,7 @@ class EtlProcess:
             is_last_sub_shard = row_count / m_factor == self.shard_multiplicity
 
             # push progress to queue at every 10th row
-            if row_count % 100 == 0 or is_last_row:
+            if row_count % 10 == 0 or is_last_row:
                 progress = (row_count + 1) / num_shard_rows
                 progress_data = {"process_id": process_id, "progress": progress}
                 self.queue.put(progress_data)
