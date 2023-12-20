@@ -10,14 +10,15 @@ class KeyValueStore:
     def __init__(self, init_tables=False):
         base_path = "/key_value_store/cerebro.db"
         self.conn = sqlite3.connect(base_path)
-        self.cursor = self.conn.cursor()
+        cursor = self.conn.cursor()
 
         # create tables
         current_dir = os.path.dirname(os.path.abspath(__file__))
         tables_file = os.path.join(current_dir, "tables.sql")
         with open(tables_file, 'r') as file:
             tables_script = file.read()
-        self.cursor.executescript(tables_script)
+        cursor.executescript(tables_script)
+        cursor.close()
         self.conn.commit()
 
         # get number of workers
@@ -75,7 +76,9 @@ class KeyValueStore:
             VALUES (?, ?)
         """
         locators_str = json.dumps(locators)
-        self.cursor.execute(query, (0, locators_str))
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, locators_str))
+        cursor.close()
         self.conn.commit()
 
     def get_dataset_locators(self):
@@ -84,8 +87,10 @@ class KeyValueStore:
             FROM dataset_locators
             WHERE id = ?
         """
-        self.cursor.execute(query, (0,))
-        params = self.cursor.fetchone()[0]
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0,))
+        params = cursor.fetchone()[0]
+        cursor.close()
         locators = json.loads(params)
         return locators
 
@@ -96,7 +101,9 @@ class KeyValueStore:
             INTO seed (id, seed_val)
             VALUES (?, ?)
         """
-        self.cursor.execute(query, (0, seed))
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, seed))
+        cursor.close()
         self.conn.commit()
 
     def get_seed(self):
@@ -105,8 +112,10 @@ class KeyValueStore:
             FROM seed
             WHERE id = ?
         """
-        self.cursor.execute(query, (0,))
-        seed = self.cursor.fetchone()[0]
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0,))
+        seed = cursor.fetchone()[0]
+        cursor.close()
         return seed
 
     # error on user's code
@@ -116,7 +125,9 @@ class KeyValueStore:
             INTO debug_errors (id, error_message)
             VALUES (?, ?)
         """
-        self.cursor.execute(query, (0, err))
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, err))
+        cursor.close()
         self.conn.commit()
 
     def get_error(self):
@@ -125,8 +136,10 @@ class KeyValueStore:
             FROM debug_errors
             WHERE id = ?
         """
-        self.cursor.execute(query, (0,))
-        err = self.cursor.fetchone()[0]
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0,))
+        err = cursor.fetchone()[0]
+        cursor.close()
         return err
 
     # health of the cluster
@@ -135,7 +148,9 @@ class KeyValueStore:
             INSERT OR REPLACE INTO restarts (worker_id, restart_count)
             VALUES (?, COALESCE((SELECT restart_count + 1 FROM restarts WHERE worker_id = ?), 0))
             """
-        self.cursor.execute(query, (worker_id, worker_id))
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id, worker_id))
+        cursor.close()
         self.conn.commit()
 
     def get_restarts(self, worker_id):
@@ -144,8 +159,10 @@ class KeyValueStore:
             FROM restarts
             WHERE worker_id = ?
         """
-        self.cursor.execute(query, (worker_id,))
-        count = self.cursor.fetchone()[0]
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id,))
+        count = cursor.fetchone()[0]
+        cursor.close()
         return count
 
     # current etl task
@@ -155,7 +172,9 @@ class KeyValueStore:
             INTO etl_task (id, task, mode)
             VALUES (?, ?, ?)
         """
-        self.cursor.execute(query, (0, task, mode))
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, task, mode))
+        cursor.close()
         self.conn.commit()
 
     def etl_get_task(self):
@@ -164,8 +183,10 @@ class KeyValueStore:
             FROM etl_task
             WHERE id = ?
         """
-        self.cursor.execute(query, (0,))
-        task, mode = self.cursor.fetchone()
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0,))
+        task, mode = cursor.fetchone()
+        cursor.close()
         return task, mode
 
     # save etl function strings
@@ -176,7 +197,9 @@ class KeyValueStore:
             INTO etl_spec (id, spec_str)
             VALUES (?, ?)
         """
-        self.cursor.execute(query, (0, func_str))
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, func_str))
+        cursor.close()
         self.conn.commit()
 
     def etl_get_spec(self):
@@ -185,8 +208,10 @@ class KeyValueStore:
             FROM etl_spec
             WHERE id = ?
         """
-        self.cursor.execute(query, (0,))
-        func_str = self.cursor.fetchone()[0]
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0,))
+        func_str = cursor.fetchone()[0]
+        cursor.close()
         func = dill.loads(base64.b64decode(func_str))
         return func
 
@@ -197,7 +222,9 @@ class KeyValueStore:
             INTO etl_worker_status (worker_id, worker_status)
             VALUES (?, ?)
         """
-        self.cursor.execute(query, (worker_id, status))
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id, status))
+        cursor.close()
         self.conn.commit()
 
     def etl_get_worker_status(self, worker_id):
@@ -206,8 +233,10 @@ class KeyValueStore:
             FROM etl_worker_status
             WHERE worker_id = ?
         """
-        self.cursor.execute(query, (worker_id,))
-        status = self.cursor.fetchone()[0]
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id,))
+        status = cursor.fetchone()[0]
+        cursor.close()
         return status
 
     # current etl-worker progress
@@ -217,7 +246,9 @@ class KeyValueStore:
             INTO etl_worker_progress (worker_id, worker_progress)
             VALUES (?, ?)
         """
-        self.cursor.execute(query, (worker_id, progress))
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id, progress))
+        cursor.close()
         self.conn.commit()
 
     def etl_get_worker_progress(self, worker_id):
@@ -226,8 +257,10 @@ class KeyValueStore:
             FROM etl_worker_progress
             WHERE worker_id = ?
         """
-        self.cursor.execute(query, (worker_id,))
-        progress = self.cursor.fetchone()[0]
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id,))
+        progress = cursor.fetchone()[0]
+        cursor.close()
         return progress
 
     # save mop function strings
