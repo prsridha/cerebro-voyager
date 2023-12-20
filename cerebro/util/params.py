@@ -6,24 +6,12 @@ from cerebro.kvs.KeyValueStore import KeyValueStore
 
 
 class Params:
-    _instance = None
-
-    # "singleton" class
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(Params, cls).__new__(cls)
-            cls._instance._load_params()
-        return cls._instance
+    def __init__(self):
+        pass
 
     def _load_params(self):
-        if os.path.isfile('/cerebro-core/params.json'):
-            with open('/cerebro-core/params.json', 'r') as file:
-                config = json.load(file)
-        else:
-            # load from KVS and then save to params.json file
-            config = self._load_from_kvs()
-            with open('/cerebro-core/params.json', 'w') as file:
-                json.dump(config, file, indent=4)
+        # load from KVS
+        config = self._load_from_kvs()
 
         # assign all variables to the class
         self.etl = config.get('etl')
@@ -65,6 +53,12 @@ class Params:
         }
 
     def _set_etl_params(self, params):
+        ordinal_name = os.environ.get("ORDINAL_ID", "")
+        if ordinal_name:
+            ordinal_id = ordinal_name.split("-")[-1]
+        else:
+            ordinal_id = ""
+
         # initialize empty params
         etl = {
             "train": defaultdict(lambda: None),
@@ -80,14 +74,14 @@ class Params:
             if "{}_main".format(mode) in params and "{}_dir".format(mode) in params:
                 etl[mode]["metadata_url"] = params["{}_main".format(mode)]
                 etl[mode]["multimedia_url"] = params["{}_dir".format(mode)]
-                etl[mode]["multimedia_download_path"] = "/data_storage_worker/downloaded/{}".format(mode)
+                etl[mode]["multimedia_download_path"] = "/data_storage_worker/{}/downloaded/{}".format(ordinal_id, mode)
                 etl[mode]["metadata_download_path"] = "/data/data_storage/metadata/{}_metadata.csv".format(mode)
                 etl[mode]["partition_path"] = "/data/data_storage/partitions/{}".format(mode)
             if mode == "val":
                 # save processed val data on shared storage
                 etl[mode]["output_path"] = "/data/data_storage/post_etl/{}".format(mode)
             else:
-                etl[mode]["output_path"] = "/data_storage_worker/post_etl/{}".format(mode)
+                etl[mode]["output_path"] = "/data_storage_worker/{}/post_etl/{}".format(ordinal_id, mode)
 
         return etl
 
