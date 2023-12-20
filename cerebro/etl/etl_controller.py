@@ -60,8 +60,7 @@ class ETLController:
         # initialize node info
         self.gpu_counts = [0 for _ in range(self.num_nodes)]
         self.total_gpus = 0
-        for k in range(self.num_nodes):
-            node_id = int(k[4:])
+        for node_id in range(self.num_nodes):
             self.gpu_counts[node_id] = self.node_info["num_gpus"]
             self.total_gpus += self.gpu_counts[node_id]
 
