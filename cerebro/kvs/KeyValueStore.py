@@ -23,10 +23,10 @@ class KeyValueStore:
         # get number of workers
         config.load_kube_config()
         v1 = client.CoreV1Api()
+        username = os.environ['USERNAME']
         namespace = os.environ['NAMESPACE']
-        cm = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=namespace)
-        node_info = json.loads(cm.data["data"])
-        self.num_workers = len(node_info)
+        cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+        self.num_workers = json.loads(cm1.data["data"])["num_nodes"]
 
         # initialize KVS with default values
         if init_tables:

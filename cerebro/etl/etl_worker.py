@@ -162,7 +162,7 @@ class ETLWorker:
         # get node info
         cm = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=namespace)
         node_info = json.loads(cm.data["data"])
-        self.num_gpus = node_info["node" + str(worker_id)]["num_gpus"]
+        self.num_gpus = node_info["num_gpus"]
 
         # add user repo dir to sys path for library discovery
         sys.path.insert(0, user_code_path)

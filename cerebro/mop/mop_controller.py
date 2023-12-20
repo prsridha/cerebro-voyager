@@ -40,19 +40,13 @@ class MOPController:
         self.worker_running_model = {}
         self.model_nworkers_trained = {}
 
-        # load values from cerebro-info and cerebro-node-hardware-info configmaps
-
+        # load values from cerebro-info configmap
         namespace = os.environ['NAMESPACE']
         config.load_kube_config()
         v1 = client.CoreV1Api()
         username = os.environ['USERNAME']
         cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
-
-        cm1_data = json.loads(cm1.data["data"])
-        username = cm1_data["username"]
-
-        cm2 = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=namespace)
-        self.num_nodes = len(json.loads(cm2.data["data"]))
+        self.num_nodes = json.loads(cm1.data["data"])["num_nodes"]
 
         # save sub-epoch func in KVS
         self.kvs = KeyValueStore()

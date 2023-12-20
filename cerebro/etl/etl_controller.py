@@ -48,6 +48,7 @@ class ETLController:
         cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
         cerebro_info = json.loads(cm.data["data"])
         user_code_path = cerebro_info["user_code_path"]
+        self.num_nodes = cerebro_info["num_nodes"]
 
         # add user repo dir to sys path for library discovery
         sys.path.insert(0, user_code_path)
@@ -55,14 +56,13 @@ class ETLController:
         # get node info
         cm = v1.read_namespaced_config_map(name='cerebro-node-hardware-info', namespace=self.namespace)
         self.node_info = json.loads(cm.data["data"])
-        self.num_nodes = len(self.node_info)
 
         # initialize node info
         self.gpu_counts = [0 for _ in range(self.num_nodes)]
         self.total_gpus = 0
-        for k in self.node_info:
+        for k in range(self.num_nodes):
             node_id = int(k[4:])
-            self.gpu_counts[node_id] = self.node_info[k]["num_gpus"]
+            self.gpu_counts[node_id] = self.node_info["num_gpus"]
             self.total_gpus += self.gpu_counts[node_id]
 
     def initialize_controller(self, etl_spec, fraction):
