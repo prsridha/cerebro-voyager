@@ -171,10 +171,10 @@ class ETLWorker:
         # add user repo dir to sys path for library discovery
         sys.path.insert(0, user_code_path)
 
-        # boost low vcpu nodes
+        # get number of processes
         cores = int(os.cpu_count())
-        # self.num_process = cores
-        self.num_process = cores if cores >= 48 else 48
+        self.num_process = 48
+        # self.num_process = cores if cores >= 48 else 48
 
         # initialize necessary handlers
         self.kvs = KeyValueStore()
