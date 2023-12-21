@@ -265,155 +265,212 @@ class KeyValueStore:
 
     # save mop function strings
     def mop_set_spec(self, func):
-        pass
-        # func_str = base64.b64encode(dill.dumps(func, byref=False)).decode("ascii")
-        # path = self.key_paths["mop_spec"]
-        # with open(path, "w+") as f:
-        #     json.dump(func_str, f)
+        func_str = base64.b64encode(dill.dumps(func, byref=False)).decode("ascii")
+        query = """
+            INSERT OR REPLACE
+            INTO mop_spec (id, spec_str)
+            VALUES (?, ?)
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, func_str))
+        cursor.close()
+        self.conn.commit()
 
     def mop_get_spec(self):
-        pass
-        # path = self.key_paths["mop_spec"]
-        # with open(path, "r") as f:
-        #     func_str = json.load(f)
-        # func = dill.loads(base64.b64decode(func_str))
-        # return func
+        query = """
+            SELECT spec_str
+            FROM mop_spec
+            WHERE id = ?
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0,))
+        func_str = cursor.fetchone()[0]
+        cursor.close()
+        func = dill.loads(base64.b64decode(func_str))
+        return func
 
     # current mop task
     def mop_set_task(self, value):
-        pass
-        # path = self.key_paths["mop_task"]
-        # with open(path, "w+") as f:
-        #     json.dump(value, f)
+        query = """
+            INSERT OR REPLACE
+            INTO mop_task (id, task)
+            VALUES (?, ?, ?)
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, value))
+        cursor.close()
+        self.conn.commit()
 
     def mop_get_task(self):
-        pass
-        # path = self.key_paths["mop_task"]
-        # with open(path, "r") as f:
-        #     val = json.load(f)
-        # return val
+        query = """
+            SELECT task
+            FROM mop_task
+            WHERE id = ?
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0,))
+        task = cursor.fetchone()
+        cursor.close()
+        return task
 
     # model for each mop-worker to run
     def mop_set_model_on_worker(self, worker_id, epoch, model_id, is_last_worker):
-        pass
-        # path = os.path.join(self.key_paths["mop_model_on_worker"], str(worker_id) + ".json")
-        # if os.path.isfile(path):
-        #     with open(path, "r") as f:
-        #         records = json.load(f)
-        # else:
-        #     records = list()
-        # d = {
-        #     "epoch": epoch,
-        #     "model_id": model_id,
-        #     "is_last_worker": is_last_worker,
-        # }
-        # records.append(d)
+        query = """
+            INSERT OR REPLACE
+            INTO mop_model_on_worker (worker_id, epoch, model_id, is_last_worker)
+            VALUES (?, ?, ?, ?)
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id, epoch, model_id, is_last_worker))
+        cursor.close()
+        self.conn.commit()
 
-        # with open(path, "w+") as f:
-        #     json.dump(records, f)
-
-    def mop_get_models_on_worker(self, worker_id, latest_only=True):
-        pass
-        # path = os.path.join(self.key_paths["mop_model_on_worker"], str(worker_id) + ".json")
-        # with open(path, "r") as f:
-        #     prev = json.load(f)
-        # if latest_only:
-        #     d = prev[-1]
-        #     d["epoch"] = int(d["epoch"])
-        #     d["model_id"] = int(d["model_id"])
-        #     return d
-        # else:
-        #     # TODO: fix this - convert to int / switch to pickle from json
-        #     return prev
+    def mop_get_models_on_worker(self, worker_id):
+        query = """
+            SELECT epoch, model_id, is_last_worker
+            FROM mop_model_on_worker
+            WHERE worker_id = ?
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id,))
+        epoch, model_id, is_last_worker = cursor.fetchone()
+        cursor.close()
+        d = {
+            "epoch": epoch,
+            "model_id": model_id,
+            "is_last_worker": is_last_worker
+        }
+        return d
 
     # (model, parallelism) for each mop-worker to sample
     def mop_set_model_parallelism_on_worker(self, worker_id, mpl):
-        pass
-        # path = self.key_paths["mop_model_parallelism_on_worker"]
-        # if os.path.isfile(path):
-        #     with open(path, "r") as f:
-        #         records = json.load(f)
-        # else:
-        #     records = {}
-        # records[str(worker_id)] = mpl
-        # with open(path, "w+") as f:
-        #     json.dump(records, f)
+        query = """
+            INSERT OR REPLACE
+            INTO mop_model_parallelism_on_worker (worker_id, model_id, parallelism)
+            VALUES (?, ?, ?)
+        """
+        cursor = self.conn.cursor()
+        model_id, parallelism = mpl
+        cursor.execute(query, (worker_id, model_id, parallelism))
+        cursor.close()
+        self.conn.commit()
 
     def mop_get_model_parallelism_on_worker(self, worker_id):
-        pass
-        # path = self.key_paths["mop_model_parallelism_on_worker"]
-        # with open(path, "r") as f:
-        #     records = json.load(f)
-        # return records[str(worker_id)]
+        query = """
+            SELECT model_id, parallelism
+            FROM mop_model_parallelism_on_worker
+            WHERE worker_id = ?
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id,))
+        model_id, parallelism = cursor.fetchone()
+        cursor.close()
+        return model_id, parallelism
 
     # current mop-worker status
     def mop_set_worker_status(self, worker_id, status):
-        pass
-        # path = os.path.join(self.key_paths["mop_worker_status"], str(worker_id) + ".json")
-        # with open(path, "w+") as f:
-        #     json.dump(status, f)
+        query = """
+            INSERT OR REPLACE
+            INTO mop_worker_status (worker_id, worker_status)
+            VALUES (?, ?)
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id, status))
+        cursor.close()
+        self.conn.commit()
 
     def mop_get_worker_status(self, worker_id):
-        pass
-        # path = os.path.join(self.key_paths["mop_worker_status"], str(worker_id) + ".json")
-        # with open(path, "r") as f:
-        #     status = json.load(f)
-        # return status
+        query = """
+            SELECT worker_status
+            FROM mop_worker_status
+            WHERE worker_id = ?
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id,))
+        status = cursor.fetchone()[0]
+        cursor.close()
+        return status
 
     # model_id to model mapping
     def mop_set_model_mapping(self, model_map):
-        pass
-        # path = self.key_paths["mop_model_mapping"]
-        # with open(path, "w+") as f:
-        #     json.dump(model_map, f)
+        cursor = self.conn.cursor()
+        for model_id, model_config in model_map:
+            query = """
+                INSERT OR REPLACE
+                INTO mop_model_mapping (model_id, model_config)
+                VALUES (?, ?)
+            """
+            cursor.execute(query, (model_id, model_config))
+        cursor.close()
+        self.conn.commit()
 
     def mop_get_model_mapping(self, model_id=None):
-        pass
-        # path = self.key_paths["mop_model_mapping"]
-        # with open(path, "r") as f:
-        #     model_map = json.load(f)
-        # if model_id is not None:
-        #     val = model_map[str(model_id)]
-        #     return val
-        # else:
-        #     val = {int(key): value for key, value in model_map.items()}
-        #     return val
+        cursor = self.conn.cursor()
+        if model_id is not None:
+            query = """
+                SELECT model_config
+                FROM mop_model_mapping
+                WHERE model_id = ?
+            """
+            cursor.execute(query, (model_id,))
+            rows = cursor.fetchone()
+            cursor.close()
+            return rows[0]
+        else:
+            query = """
+                SELECT *
+                FROM mop_model_mapping
+            """
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            cursor.close()
+            data_dict = {row[0]: row[1] for row in rows}
+            return data_dict
 
     # model_id to parallelism mapping
     def mop_set_parallelism_mapping(self, model_id, parallelism):
-        pass
-        # path = self.key_paths["mop_parallelism_mapping"]
-        # if os.path.isfile(path):
-        #     with open(path, "r") as f:
-        #         records = json.load(f)
-        # else:
-        #     records = {}
-        # records[str(model_id)] = parallelism
-        # with open(path, "w+") as f:
-        #     json.dump(records, f)
+        query = """
+            INSERT OR REPLACE
+            INTO mop_model_on_worker (model_id, parallelism)
+            VALUES (?, ?)
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (model_id, parallelism))
+        cursor.close()
+        self.conn.commit()
 
     def mop_get_parallelism_mapping(self, model_id):
-        pass
-        # path = self.key_paths["mop_parallelism_mapping"]
-        # with open(path, "r") as f:
-        #     records = json.load(f)
-        #     val = records[str(model_id)]
-        # return val
+        query = """
+            SELECT parallelism
+            FROM mop_parallelism_mapping
+            WHERE model_id = ?
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (model_id,))
+        parallelism = cursor.fetchone()[0]
+        cursor.close()
+        return parallelism
 
     # temp save sample time
     def mop_set_sample_time(self, model_id, parallelism, time_taken):
-        pass
-        # path = os.path.join(self.key_paths["mop_sample_time"], str(model_id) + ".json")
-        # mp = json.dumps((model_id, parallelism))
-        # d = {mp: time_taken}
-        # with open(path, "w+") as f:
-        #     json.dump(d, f)
+        query = """
+            INSERT OR REPLACE
+            INTO mop_sample_time (model_id, parallelism, time_taken)
+            VALUES (?, ?, ?)
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (model_id, parallelism, time_taken))
+        cursor.close()
+        self.conn.commit()
 
     def mop_get_sample_time(self, model_id, parallelism):
-        pass
-        # path = os.path.join(self.key_paths["mop_sample_time"], str(model_id) + ".json")
-        # mp = json.dumps((model_id, parallelism))
-        # with open(path, "r") as f:
-        #     d = json.load(f)
-        #     val = float(d[mp])
-        # return val
+        query = """
+            SELECT time_taken
+            FROM mop_sample_time
+            WHERE model_id = ? AND parallelism = ?
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (model_id, parallelism))
+        time_taken = cursor.fetchone()[0]
+        cursor.close()
+        return time_taken
