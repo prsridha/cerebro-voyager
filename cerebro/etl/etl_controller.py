@@ -304,18 +304,18 @@ class ETLController:
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "predict")
 
-        # close etl worker
+        # close etl
         self.exit_etl()
-
-    def clean_up(self):
-        # scale down workers
-        self.scale_workers(0)
-        self.logger.info("Scaled down ETL workers")
-
-        self.logger.info("Cleaning up controller and worker memory")
-        del self.metadata_df
-        gc.collect()
 
     def exit_etl(self):
         # idle all ETL Workers
         self.kvs.etl_set_task(kvs_constants.PROGRESS_COMPLETE, "")
+
+        # scale down workers
+        self.scale_workers(0)
+
+        # clean up
+        del self.metadata_df
+        gc.collect()
+        self.logger.info("Cleaned up ETL controller and worker memory")
+        self.logger.info("Closed ETL")
