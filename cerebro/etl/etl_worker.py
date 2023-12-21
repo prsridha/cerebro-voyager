@@ -144,7 +144,6 @@ class ETLWorker:
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("etl-worker")
 
-        self.file_io = None
         self.params = None
         self.shards = None
         self.etl_spec = None
@@ -186,10 +185,6 @@ class ETLWorker:
     def initialize_worker(self):
         # initialize params and get features to download
         self.params = Params()
-
-        # create I/O object for reads and writes
-        update_progress_fn = partial(self.kvs.etl_set_worker_progress, self.worker_id)
-        self.file_io = VoyagerIO(update_progress_fn)
 
         if self.kvs.etl_get_spec():
             self.etl_spec = self.kvs.etl_get_spec()
@@ -253,7 +248,7 @@ class ETLWorker:
             err = self.kvs.get_error()
             if err:
                 # exit with an error code
-                self.logger.error("Caught error in Worker, exiting")
+                self.logger.error("Caught error in Worker {}".format(self.worker_id))
                 self.logger.error(str(err))
 
             progress = self.progress_queue.get()
@@ -261,11 +256,14 @@ class ETLWorker:
             progress_value = progress['progress']
             if process_id not in progress_data:
                 progress_data[process_id] = 0
+
             progress_data[process_id] = progress_value
             percentage = (sum(progress_data.values()) / self.num_process) * 100
             self.kvs.etl_set_worker_progress(self.worker_id, percentage)
             if progress_value == 1.0:
                 done += 1
+            # wait before proceeding
+            time.sleep(0.5)
 
         self.p.close()
         self.p.join()
@@ -294,19 +292,27 @@ class ETLWorker:
         self.logger.info("Completed process partition on worker {}".format(self.worker_id))
 
     def upload_processed_data(self, mode):
+        # create I/O object for reads and writes
+        update_progress_fn = partial(self.kvs.etl_set_worker_progress, self.worker_id)
+        file_io = VoyagerIO(update_progress_fn)
+
         self.logger.info("Beginning upload of processed ETL data")
         prefix = os.path.join(self.params.etl["etl_dir"], mode)
         output_path = self.params.etl[mode]["output_path"]
-        self.file_io.upload(output_path, prefix)
+        file_io.upload(output_path, prefix)
         self.logger.info("Completed upload of {} data to destination from worker {}".format(mode, self.worker_id))
 
     def download_processed_data(self, mode):
+        # create I/O object for reads and writes
+        update_progress_fn = partial(self.kvs.etl_set_worker_progress, self.worker_id)
+        file_io = VoyagerIO(update_progress_fn)
+
         self.logger.info("Beginning download of processed ETL data")
         exclude_prefix = os.path.join(self.params.etl["etl_dir"], mode)
         prefix = os.path.join(self.params.etl["etl_dir"], mode, "{}_data{}.pkl".format(mode, self.worker_id))
         Path(self.params.etl[mode]["output_path"]).mkdir(parents=True, exist_ok=True)
         output_path = self.params.etl[mode]["output_path"]
-        self.file_io.download(output_path, prefix, exclude_prefix)
+        file_io.download(output_path, prefix, exclude_prefix)
         self.logger.info("Completed download of {} data from destination on worker {}".format(mode, self.worker_id))
 
     def serve_forever(self):
@@ -314,7 +320,6 @@ class ETLWorker:
         print("Started serving forever...")
 
         done = False
-        worker_idling = False
         prev_task_mode = (None, None)
         task, mode = self.kvs.etl_get_task()
         if task:
@@ -322,22 +327,16 @@ class ETLWorker:
             self.logger.info("Worker{} restart detected in ETL".format(self.worker_id))
             self.kvs.set_restarts(self.worker_id)
 
-            # ETL is idling after restart
-            if task == kvs_constants.PROGRESS_COMPLETE:
-                worker_idling = True
-
             self.initialize_worker()
             prev_task_mode = (kvs_constants.ETL_TASK_INITIALIZE, None)
-            self.kvs.etl_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
             self.logger.info("Recovery ETL_TASK_INITIALIZE completed on worker{}.".format(self.worker_id))
 
-        while not done:
+        while True:
             if prev_task_mode == (task, mode):
                 # no new tasks
                 time.sleep(0.5)
             else:
                 if task == kvs_constants.ETL_TASK_INITIALIZE:
-                    worker_idling = False
                     self.logger.info("Beginning task ETL_TASK_INITIALIZE on worker{}".format(self.worker_id))
                     self.initialize_worker()
                     self.logger.info("ETL_TASK_INITIALIZE completed on worker{}.".format(self.worker_id))
@@ -346,7 +345,7 @@ class ETLWorker:
                     self.logger.info("ETL_TASK_PREPROCESS for {} data completed on worker{}.".format(
                         mode, self.worker_id))
                 elif task == kvs_constants.ETL_TASK_LOAD_PROCESSED:
-                    if not self.params or self.file_io:
+                    if not self.params:
                         self.initialize_worker()
                     self.download_processed_data(mode)
                     self.logger.info("ETL_TASK_LOAD_PROCESSED for {} data completed on worker {}.".format(
@@ -355,10 +354,10 @@ class ETLWorker:
                     self.upload_processed_data(mode)
                     self.logger.info("ETL_TASK_SAVE_PROCESSED for {} data completed on worker{}.".format(
                         mode, self.worker_id))
-                elif task == kvs_constants.PROGRESS_COMPLETE and not worker_idling:
+                elif task == kvs_constants.PROGRESS_COMPLETE:
                     done = True
                     self.kvs.etl_set_worker_progress(self.worker_id, 0)
-                    self.logger.info("ETL Complete. Restarting worker{} for future ETL tasks.".format(self.worker_id))
+                    self.logger.info("ETL tasks complete on worker{}".format(self.worker_id))
 
                 # mark task as complete in worker
                 self.kvs.etl_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)

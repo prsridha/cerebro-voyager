@@ -9,7 +9,7 @@ from kubernetes import client, config
 class KeyValueStore:
     def __init__(self, init_tables=False):
         base_path = "/key_value_store/cerebro.db"
-        self.conn = sqlite3.connect(base_path)
+        self.conn = sqlite3.connect(base_path, timeout=5000)
         cursor = self.conn.cursor()
 
         # create tables
