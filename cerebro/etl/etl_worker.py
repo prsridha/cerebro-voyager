@@ -362,17 +362,23 @@ class ETLWorker:
                 # mark task as complete in worker
                 self.kvs.etl_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
-            # poll KVS for task
-            if not done:
-                prev_task_mode = (task, mode)
-                task, mode = self.kvs.etl_get_task()
-
             # check for errors:
             err = self.kvs.get_error()
             if err:
-                # exit with an error code
-                self.logger.error("Caught error in Worker, exiting")
+                # mark as done, wait for restart
+                done = True
+
+                # print error message
+                self.logger.error("Caught error in ETL Worker {}, waiting for restart".format(self.worker_id))
                 self.logger.error(str(err))
+
+            # update prev task and poll KVS for next tasks
+            prev_task_mode = (task, mode)
+            if done:
+                # wait for ETL Controller to close workers
+                time.sleep(1)
+            else:
+                task, mode = self.kvs.etl_get_task()
 
 
 def main():
