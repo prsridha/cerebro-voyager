@@ -171,9 +171,9 @@ class ETLWorker:
         sys.path.insert(0, user_code_path)
 
         # get number of processes
+        # self.num_process = 48
         cores = int(os.cpu_count())
-        self.num_process = 48
-        # self.num_process = cores if cores >= 48 else 48
+        self.num_process = cores if cores >= 48 else 48
 
         # initialize necessary handlers
         self.kvs = KeyValueStore()
