@@ -4,7 +4,6 @@ import sys
 import time
 import json
 import uuid
-import argparse
 import pandas as pd
 import multiprocessing
 from pathlib import Path
@@ -108,7 +107,7 @@ class EtlProcess:
             is_last_sub_shard = row_count / m_factor == self.shard_multiplicity
 
             # push progress to queue at every 10th row
-            if row_count % 10 == 0 or is_last_row:
+            if row_count % 200 == 0 or is_last_row:
                 progress = (row_count + 1) / num_shard_rows
                 progress_data = {"process_id": process_id, "progress": progress}
                 self.queue.put(progress_data)
@@ -262,8 +261,6 @@ class ETLWorker:
             self.kvs.etl_set_worker_progress(self.worker_id, percentage)
             if progress_value == 1.0:
                 done += 1
-            # wait before proceeding
-            time.sleep(0.5)
 
         self.p.close()
         self.p.join()
@@ -316,13 +313,12 @@ class ETLWorker:
         self.logger.info("Completed download of {} data from destination on worker {}".format(mode, self.worker_id))
 
     def serve_forever(self):
-        self.logger.info("Started serving forever...")
-        print("Started serving forever...")
+        self.logger.info("Started ETL worker server on worker{}".format(self.worker_id))
 
         done = False
         prev_task_mode = (None, None)
         task, mode = self.kvs.etl_get_task()
-        if task:
+        if task and task != kvs_constants.ETL_TASK_INITIALIZE:
             # recovered
             self.logger.info("Worker{} restart detected in ETL".format(self.worker_id))
             self.kvs.set_restarts(self.worker_id)
@@ -367,8 +363,6 @@ class ETLWorker:
             if err:
                 # mark as done, wait for restart
                 done = True
-
-                # print error message
                 self.logger.error("Caught error in ETL Worker {}, waiting for restart".format(self.worker_id))
                 self.logger.error(str(err))
 
