@@ -296,7 +296,8 @@ class ETLWorker:
         self.logger.info("Beginning upload of processed ETL data")
         prefix = os.path.join(self.params.etl["etl_dir"], mode)
         output_path = self.params.etl[mode]["output_path"]
-        file_io.upload(output_path, prefix)
+        exclude_prefix = prefix
+        file_io.upload(output_path, prefix, exclude_prefix)
         self.logger.info("Completed upload of {} data to destination from worker {}".format(mode, self.worker_id))
 
     def download_processed_data(self, mode):
