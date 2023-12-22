@@ -158,6 +158,7 @@ class ETLWorker:
         v1 = client.CoreV1Api()
         cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm_data = json.loads(cm.data["data"])
+        self.user_ids = (cm_data["uid"], cm_data["gid"])
         user_code_path = cm_data["user_code_path"]
         self.shard_multiplicity = cm_data["shard_multiplicity"]
 
@@ -299,6 +300,19 @@ class ETLWorker:
         exclude_prefix = prefix
         file_io.upload(output_path, prefix, exclude_prefix)
         self.logger.info("Completed upload of {} data to destination from worker {}".format(mode, self.worker_id))
+
+        # change ownership of output dir
+        uid, gid = self.user_ids
+        os.chown(output_path, uid, gid)
+        # Iterate through all directories and files within the current directory
+        for root, dirs, files in os.walk(output_path):
+            for dir_name in dirs:
+                dir_path = os.path.join(root, dir_name)
+                os.chown(dir_path, uid, gid)
+
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
+                os.chown(file_path, uid, gid)
 
     def download_processed_data(self, mode):
         # create I/O object for reads and writes

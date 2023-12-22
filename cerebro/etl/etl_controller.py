@@ -47,8 +47,9 @@ class ETLController:
         v1 = client.CoreV1Api()
         cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
         cerebro_info = json.loads(cm.data["data"])
-        user_code_path = cerebro_info["user_code_path"]
         self.num_nodes = cerebro_info["num_nodes"]
+        user_code_path = cerebro_info["user_code_path"]
+        self.user_ids = (cerebro_info["uid"], cerebro_info["gid"])
 
         # add user repo dir to sys path for library discovery
         sys.path.insert(0, user_code_path)
@@ -154,6 +155,32 @@ class ETLController:
         output_path = os.path.join(self.params.etl["val"]["output_path"], "val_data.pkl")
         file_io.download(output_path, prefix, exclude_prefix)
         self.logger.info("Completed download of val data from Ceph on controller")
+
+    def upload_processed_val_data(self):
+        self.logger.info("Beginning upload of processed ETL val data")
+        str_task = self.task_descriptions[kvs_constants.ETL_TASK_LOAD_PROCESSED]
+        desc = "{} Progress".format(str_task + " " + str.capitalize("val"))
+        val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
+        file_io = VoyagerIO(val_progress)
+
+        prefix = os.path.join(self.params.etl["etl_dir"], "val")
+        output_path = self.params.etl["val"]["output_path"]
+        exclude_prefix = prefix
+        file_io.upload(output_path, prefix, exclude_prefix)
+        self.logger.info("Completed upload of val data to destination from Controller")
+
+        # change ownership of output dir
+        uid, gid = self.user_ids
+        os.chown(output_path, uid, gid)
+        # Iterate through all directories and files within the current directory
+        for root, dirs, files in os.walk(output_path):
+            for dir_name in dirs:
+                dir_path = os.path.join(root, dir_name)
+                os.chown(dir_path, uid, gid)
+
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
+                os.chown(file_path, uid, gid)
 
     def shard_data(self, mode):
         # load seed value
@@ -290,11 +317,11 @@ class ETLController:
                 self.process_task(kvs_constants.ETL_TASK_LOAD_PROCESSED, "train")
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "train")
+            # handle val data separately
             if not etl_mode_present["val"]:
-                # handle download of val data separately
                 self.download_processed_val_data()
             else:
-                self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "val")
+                self.upload_processed_val_data()
             if not etl_mode_present["test"]:
                 self.process_task(kvs_constants.ETL_TASK_LOAD_PROCESSED, "test")
             else:
