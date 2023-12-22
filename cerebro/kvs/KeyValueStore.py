@@ -290,28 +290,28 @@ class KeyValueStore:
         return func
 
     # current mop task
-    def mop_set_task(self, value):
+    def mop_set_task(self, worker_id, task_id, task):
         query = """
             INSERT OR REPLACE
-            INTO mop_task (id, task)
+            INTO mop_task (worker_id, task_id, task)
             VALUES (?, ?, ?)
         """
         cursor = self.conn.cursor()
-        cursor.execute(query, (0, value))
+        cursor.execute(query, (worker_id, task_id, task))
         cursor.close()
         self.conn.commit()
 
-    def mop_get_task(self):
+    def mop_get_task(self, worker_id):
         query = """
-            SELECT task
+            SELECT task_id, task
             FROM mop_task
-            WHERE id = ?
+            WHERE worker_id = ?
         """
         cursor = self.conn.cursor()
-        cursor.execute(query, (0,))
-        task = cursor.fetchone()
+        cursor.execute(query, (worker_id,))
+        task_id, task = cursor.fetchone()
         cursor.close()
-        return task
+        return task_id, task
 
     # model for each mop-worker to run
     def mop_set_model_on_worker(self, worker_id, epoch, model_id, is_last_worker):
@@ -343,14 +343,13 @@ class KeyValueStore:
         return d
 
     # (model, parallelism) for each mop-worker to sample
-    def mop_set_model_parallelism_on_worker(self, worker_id, mpl):
+    def mop_set_model_parallelism_on_worker(self, worker_id, model_id, parallelism):
         query = """
             INSERT OR REPLACE
             INTO mop_model_parallelism_on_worker (worker_id, model_id, parallelism)
             VALUES (?, ?, ?)
         """
         cursor = self.conn.cursor()
-        model_id, parallelism = mpl
         cursor.execute(query, (worker_id, model_id, parallelism))
         cursor.close()
         self.conn.commit()

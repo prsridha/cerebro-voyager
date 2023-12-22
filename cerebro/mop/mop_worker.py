@@ -4,11 +4,9 @@ import sys
 import json
 import time
 import random
-import argparse
 import threading
 from pathlib import Path
 from kubernetes import client, config
-from xmlrpc.server import SimpleXMLRPCServer
 
 from cerebro.util.params import Params
 import cerebro.kvs.constants as kvs_constants
@@ -27,12 +25,12 @@ class CerebroWorker:
 
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("mop-worker")
-        self.user_logger = logging.create_logger("mop-user")
+        self.logger.info("Starting MOP worker {}".format(worker_id))
 
-        self.kvs = KeyValueStore()
         self.params = None
         self.sub_epoch_spec = None
         self.worker_id = worker_id
+        self.kvs = KeyValueStore()
 
         # load values from cerebro-info configmap
         namespace = os.environ['NAMESPACE']
@@ -41,20 +39,11 @@ class CerebroWorker:
         v1 = client.CoreV1Api()
         cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm_data = json.loads(cm.data["data"])
-        hostname = "0.0.0.0"
-        port = cm_data["worker_rpc_port"]
-        user_code_path = cm_data["user_code_path"]
         self.sample_size = cm_data["sample_size"]
         self.metrics_cycle_size = cm_data["metrics_cycle_size"]
 
-        self.server = SimpleXMLRPCServer((hostname, port), allow_none=True, logRequests=False)
-        self.server.register_function(self.initialize_worker)
-        self.server.register_function(self.test_model_on_worker)
-        self.server.register_function(self.train_model_on_worker)
-        self.server.register_function(self.sample_parallelism_on_worker)
-
         # add user repo dir to sys path for library discovery
-        sys.path.insert(0, user_code_path)
+        # sys.path.insert(0, user_code_path)
 
         self.logger.info('Starting Cerebro worker {}'.format(worker_id))
         print('Starting Cerebro worker {}'.format(worker_id))
@@ -72,28 +61,6 @@ class CerebroWorker:
         self.sub_epoch_spec = self.kvs.mop_get_spec()
         self.sub_epoch_spec.initialize_worker()
         self.logger.info("Subepoch init worker called")
-
-    def server_forever(self):
-        state = self.kvs.mop_get_task()
-        if state != "" and self.kvs.mop_get_worker_status(self.worker_id) == kvs_constants.IN_PROGRESS:
-            # restarted
-            self.logger.info("Worker{} recovery detected in MOP".format(self.worker_id))
-            self.kvs.set_restarts(self.worker_id)
-
-            self.initialize_worker()
-
-        if state == kvs_constants.MOP_TASK_TRIALS:
-            model_id, parallelism_name = self.kvs.mop_get_model_parallelism_on_worker(self.worker_id)
-            self.sample_parallelism_on_worker(model_id, parallelism_name)
-        elif state == kvs_constants.MOP_TASK_TRAIN_VAL:
-            d = self.kvs.mop_get_models_on_worker(self.worker_id)
-            self.train_model_on_worker(d["model_id"], d["epoch"], d["is_last_worker"])
-        elif state == kvs_constants.MOP_TASK_TEST:
-            pass
-
-        self.logger.info("Started serving forever...")
-        print("Started serving forever...")
-        self.server.serve_forever()
 
     def sample_parallelism(self, ParallelismExecutor, model_id, model_config, parallelism_name):
         # obtain seed value
@@ -120,8 +87,7 @@ class CerebroWorker:
 
         time_elapsed = end - start
         self.kvs.mop_set_sample_time(model_id, parallelism_name, time_elapsed)
-        self.logger.info("completed parallelism sampling of model {} on worker {}".format(model_id, self.worker_id))
-        print("completed parallelism sampling of model {} on worker {}".format(model_id, self.worker_id))
+        self.logger.info("Completed parallelism sampling of model {} on worker {}".format(model_id, self.worker_id))
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
@@ -232,6 +198,54 @@ class CerebroWorker:
         self.logger.info("Thread started in test_model_on_worker")
         print("Thread started in test_model_on_worker")
 
+    def server_forever(self):
+        done = False
+        prev_task, prev_task_id = None, None
+        task, task_id = self.kvs.mop_get_task(self.worker_id)
+        if task and task != kvs_constants.MOP_TASK_INITIALIZE:
+            # recovered
+            self.logger.info("Worker{} recovery detected in MOP".format(self.worker_id))
+            self.kvs.set_restarts(self.worker_id)
+
+            self.initialize_worker()
+            prev_task = kvs_constants.MOP_TASK_INITIALIZE
+            self.logger.info("Recovery MOP_TASK_INITIALIZE completed on worker{}.".format(self.worker_id))
+
+        while True:
+            if (prev_task, prev_task_id) == (task, task_id):
+                # no new tasks
+                time.sleep(0.5)
+            else:
+                if task == kvs_constants.MOP_TASK_TRIALS:
+                    model_id, parallelism_name = self.kvs.mop_get_model_parallelism_on_worker(self.worker_id)
+                    self.sample_parallelism_on_worker(model_id, parallelism_name)
+                elif task == kvs_constants.MOP_TASK_TRAIN_VAL:
+                    d = self.kvs.mop_get_models_on_worker(self.worker_id)
+                    self.train_model_on_worker(d["model_id"], d["epoch"], d["is_last_worker"])
+                elif task == kvs_constants.MOP_TASK_TEST:
+                    pass
+                elif task == kvs_constants.PROGRESS_COMPLETE:
+                    done = True
+                    self.logger.info("MOP tasks complete on worker{}".format(self.worker_id))
+
+                # mark task as complete in worker
+                self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
+
+            # check for errors:
+            err = self.kvs.get_error()
+            if err:
+                # mark as done, wait for restart
+                done = True
+                self.logger.error("Caught error in MOP Worker {}, waiting for restart".format(self.worker_id))
+                self.logger.error(str(err))
+
+            # update prev task and poll KVS for next tasks
+            prev_task, prev_task_id = task, task_id
+            if done:
+                # wait for MOP Controller to close workers
+                time.sleep(1)
+            else:
+                task, task_id = self.kvs.mop_get_task(self.worker_id)
 
 def main():
     worker = CerebroWorker()

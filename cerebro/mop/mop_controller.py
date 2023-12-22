@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 import json
 import pprint
 import random
@@ -42,11 +43,11 @@ class MOPController:
 
         # load values from cerebro-info configmap
         namespace = os.environ['NAMESPACE']
+        username = os.environ['USERNAME']
         config.load_kube_config()
         v1 = client.CoreV1Api()
-        username = os.environ['USERNAME']
         cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
-        self.num_nodes = json.loads(cm1.data["data"])["num_nodes"]
+        self.num_workers = json.loads(cm1.data["data"])["num_workers"]
 
         # save sub-epoch func in KVS
         self.kvs = KeyValueStore()
@@ -58,7 +59,7 @@ class MOPController:
                 Path(full_path).mkdir(parents=True, exist_ok=True)
 
         # get MOP workers
-        self.workers = list(range(self.num_nodes))
+        self.workers = list(range(self.num_workers))
 
     def initialize_controller(self, num_epochs, param_grid, sub_epoch_spec):
         self.num_epochs = num_epochs
@@ -70,16 +71,10 @@ class MOPController:
             self.logger.info("Saved MOP spec on KeyValueStore")
 
             # initilize MOP workers
-            for w, worker in self.workers.items():
-                try:
-                    self.kvs.mop_set_task(kvs_constants.MOP_TASK_INITIALIZE)
-                    worker.initialize_worker()
-                except Exception as e:
-                    self.logger.error(
-                        "Unable to reach MOP worker {} during worker initialization. Error: {}".format(w, str(e)))
-                    print("Unable to reach MOP worker {} during worker initialization. Error: {}".format(w, str(e)))
-
-            self.logger.info("Initialized MOP workers")
+            for w in range(self.num_workers):
+                task_id = uuid.uuid4()
+                self.kvs.mop_set_task(w, task_id, kvs_constants.MOP_TASK_INITIALIZE)
+                self.logger.info("Initialized MOP workers")
         else:
             self.kvs.mop_set_spec("")
 
@@ -174,7 +169,7 @@ class MOPController:
     def sampler(self):
         mpls = set()
         mpl_on_worker = {}
-        n_workers = self.num_nodes
+        n_workers = self.num_workers
 
         # generate model-parallelism combinations
         for p in PARALLELISMS_LIST:
@@ -183,7 +178,6 @@ class MOPController:
 
         mpls_to_schedule = set(deepcopy(mpls))
         remaining_mpls = set(deepcopy(mpls))
-        self.kvs.mop_set_task(kvs_constants.MOP_TASK_TRIALS)
 
         for w in range(n_workers):
             mpl_on_worker[w] = None
@@ -195,17 +189,17 @@ class MOPController:
                     # schedule new trial run
                     mpl = mpls_to_schedule.pop()
                     mpl_on_worker[w] = mpl
-                    self.kvs.mop_set_model_parallelism_on_worker(w, mpl)
-                    try:
-                        # mark worker as busy
-                        self.kvs.mop_set_worker_status(w, kvs_constants.IN_PROGRESS)
-                        model_id, parallelism = mpl
-                        self.workers[w].sample_parallelism_on_worker(model_id, parallelism)
-                        self.logger.info("Scheduled trial run of parallelism {} on worker {}".format(mpl, w))
-                        # print("Scheduled trial run of parallelism {} on worker {}".format(mpl, w))
-                    except Exception as e:
-                        self.logger.error("Failed to schedule trial run of parallelism {} on worker {}. Error {}".format(mpl, w, str(e)))
-                        print("Failed to schedule trial run of parallelism {} on worker {}. Error {}".format(mpl, w, str(e)))
+                    model_id, parallelism = mpl
+
+                    # mark worker as busy
+                    self.kvs.mop_set_worker_status(w, kvs_constants.IN_PROGRESS)
+                    self.kvs.mop_set_model_parallelism_on_worker(w, model_id, parallelism)
+
+                    # set worker task
+                    task_id = uuid.uuid4()
+                    self.kvs.mop_set_task(w, task_id, kvs_constants.MOP_TASK_TRIALS)
+
+                    self.logger.info("Scheduled trial run of parallelism {} on worker {}".format(mpl, w))
                 else:
                     # check if worker status is "complete"
                     mpl = mpl_on_worker[w]
@@ -237,7 +231,7 @@ class MOPController:
         self.logger.info(str(config_df.to_dict()))
 
     def init_epoch(self):
-        n_workers = self.num_nodes
+        n_workers = self.num_workers
         msts = deepcopy(self.msts)
 
         # initialize all data structures
@@ -263,13 +257,10 @@ class MOPController:
         self.logger.info(s)
 
     def scheduler(self, epoch):
-        n_workers = self.num_nodes
+        n_workers = self.num_workers
         models_to_build = set(range(self.num_models))
 
-        self.kvs.mop_set_task(kvs_constants.MOP_TASK_TRAIN_VAL)
-        self.logger.info("Beginning model scheduling...")
-        self.logger.info("Starting epoch...")
-
+        self.logger.info("Beginning model scheduling")
         model_progresses = {m: tqdm_notebook(total=n_workers, desc='Model ' + str(m), position=0, leave=False) for m in range(len(models_to_build))}
 
         while models_to_build:
@@ -279,14 +270,13 @@ class MOPController:
                     if model_id != -1:
                         is_last_worker = self.model_nworkers_trained[model_id] == n_workers - 1
 
-                        # update KVS and launch job
+                        # update KVS
                         self.kvs.mop_set_model_on_worker(worker_id, epoch, model_id, is_last_worker)
                         self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
-                        try:
-                            self.workers[worker_id].train_model_on_worker(model_id, epoch, is_last_worker)
-                        except Exception as e:
-                            self.logger.error("Failed to schedule train of model {} on worker {}. Error {}".format(model_id, worker_id, str(e)))
-                            print("Failed to schedule train of model {} on worker {}. Error {}".format(model_id, worker_id, str(e)))
+
+                        # set worker task
+                        task_id = uuid.uuid4()
+                        self.kvs.mop_set_task(worker_id, task_id, kvs_constants.MOP_TASK_TRAIN_VAL)
 
                         self.model_on_worker[model_id] = worker_id
                         self.worker_running_model[worker_id] = model_id
@@ -332,23 +322,20 @@ class MOPController:
         output_dir = self.params.mop["test_output_path"]
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-        # set worker task
-        self.kvs.mop_set_task(kvs_constants.MOP_TASK_TEST)
-
         # run test on all workers
-        for worker_id in range(self.num_nodes):
+        for worker_id in range(self.num_workers):
             self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
-            try:
-                self.workers[worker_id].test_model_on_worker(model_tag, batch_size)
-            except Exception as e:
-                self.logger.error("Failed to schedule test of model {} on worker {}. Error {}".format(model_tag, worker_id, str(e)))
-                print("Failed to schedule test of model {} on worker {}. Error {}".format(model_tag, worker_id, str(e)))
+
+            # set worker task
+            task_id = uuid.uuid4()
+            self.kvs.mop_set_task(worker_id, task_id, kvs_constants.MOP_TASK_TEST)
+            self.workers[worker_id].test_model_on_worker(model_tag, batch_size)
 
         # update completion progress
         progress = tqdm_notebook(total=100, desc="Testing Progress", position=0, leave=False)
         while True:
             all_complete = []
-            for w in range(self.num_nodes):
+            for w in range(self.num_workers):
                 status = self.kvs.mop_get_worker_status(w)
                 completed = status == kvs_constants.PROGRESS_COMPLETE
                 if completed:
@@ -374,7 +361,7 @@ class MOPController:
         self.kvs.mop_set_task(kvs_constants.MOP_TASK_TEST)
 
         # run test on all workers
-        for worker_id in range(self.num_nodes):
+        for worker_id in range(self.num_workers):
             self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
             try:
                 self.workers[worker_id].test_model_on_worker(model_tag, batch_size)
@@ -388,7 +375,7 @@ class MOPController:
         progress = tqdm_notebook(total=100, desc="Inference Progress", position=0, leave=False)
         while True:
             all_complete = []
-            for w in range(self.num_nodes):
+            for w in range(self.num_workers):
                 status = self.kvs.mop_get_worker_status(w)
                 completed = status == kvs_constants.PROGRESS_COMPLETE
                 if completed:

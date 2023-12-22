@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS etl_worker_progress (
 
 -- MOP Task
 CREATE TABLE IF NOT EXISTS mop_task (
-    id INTEGER PRIMARY KEY,
+    worker_id INTEGER PRIMARY KEY,
+    task_id TEXT DEFAULT ""
     task TEXT DEFAULT ""
 );
 
