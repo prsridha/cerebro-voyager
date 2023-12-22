@@ -146,7 +146,7 @@ class ETLController:
         str_task = self.task_descriptions[kvs_constants.ETL_TASK_LOAD_PROCESSED]
         desc = "{} Progress".format(str_task + " " + str.capitalize("val"))
         val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
-        file_io = VoyagerIO(val_progress)
+        file_io = VoyagerIO(val_progress.update)
 
         # download val data from Ceph
         exclude_prefix = os.path.join(self.params.etl["etl_dir"], "val")
@@ -161,7 +161,7 @@ class ETLController:
         str_task = self.task_descriptions[kvs_constants.ETL_TASK_LOAD_PROCESSED]
         desc = "{} Progress".format(str_task + " " + str.capitalize("val"))
         val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
-        file_io = VoyagerIO(val_progress)
+        file_io = VoyagerIO(val_progress.update)
 
         prefix = os.path.join(self.params.etl["etl_dir"], "val")
         output_path = self.params.etl["val"]["output_path"]
