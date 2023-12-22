@@ -47,7 +47,7 @@ class ETLController:
         v1 = client.CoreV1Api()
         cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
         cerebro_info = json.loads(cm.data["data"])
-        self.num_nodes = cerebro_info["num_nodes"]
+        self.num_workers = cerebro_info["num_workers"]
         user_code_path = cerebro_info["user_code_path"]
         self.user_ids = (cerebro_info["uid"], cerebro_info["gid"])
 
@@ -59,9 +59,9 @@ class ETLController:
         self.node_info = json.loads(cm.data["data"])
 
         # initialize node info
-        self.gpu_counts = [0 for _ in range(self.num_nodes)]
+        self.gpu_counts = [0 for _ in range(self.num_workers)]
         self.total_gpus = 0
-        for node_id in range(self.num_nodes):
+        for node_id in range(self.num_workers):
             self.gpu_counts[node_id] = self.node_info["num_gpus"]
             self.total_gpus += self.gpu_counts[node_id]
 
@@ -83,11 +83,11 @@ class ETLController:
 
     def initialize_etl_workers(self):
         # Initialize ETL Workers
-        for worker_id in range(self.num_nodes):
+        for worker_id in range(self.num_workers):
             self.kvs.etl_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
         # scale up ETL workers
-        self.scale_workers(self.num_nodes)
+        self.scale_workers(self.num_workers)
 
         # mark as initializing
         self.kvs.etl_set_task(kvs_constants.ETL_TASK_INITIALIZE, "")
@@ -96,7 +96,7 @@ class ETLController:
         # wait for initialization to complete on all nodes
         done = False
         while not done:
-            completed = [self.kvs.etl_get_worker_status(w) == kvs_constants.PROGRESS_COMPLETE for w in range(self.num_nodes)]
+            completed = [self.kvs.etl_get_worker_status(w) == kvs_constants.PROGRESS_COMPLETE for w in range(self.num_workers)]
             if all(completed):
                 done = True
                 break
@@ -199,7 +199,7 @@ class ETLController:
         self.logger.info("Loaded {} metadata".format(mode))
 
         # partition size is proportional to num_gpus on each node
-        n = self.num_nodes
+        n = self.num_workers
         partition_size_ratios = [0.0 for _ in range(n)]
         for nid in range(n):
             partition_size_ratios[nid] = self.gpu_counts[nid] / self.total_gpus
@@ -228,7 +228,7 @@ class ETLController:
         str_task = self.task_descriptions[task]
 
         # mark all ETL worker status as in-progress and set progress to 0
-        for worker_id in range(self.num_nodes):
+        for worker_id in range(self.num_workers):
             self.kvs.etl_set_worker_progress(worker_id, 0)
             self.kvs.etl_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
@@ -253,10 +253,10 @@ class ETLController:
 
             total = 0.0
             completed = []
-            for worker_id in range(self.num_nodes):
+            for worker_id in range(self.num_workers):
                 total += self.kvs.etl_get_worker_progress(worker_id)
                 completed.append(self.kvs.etl_get_worker_status(worker_id) == kvs_constants.PROGRESS_COMPLETE)
-            percentage = round(total / self.num_nodes, 2)
+            percentage = round(total / self.num_workers, 2)
 
             if all(completed):
                 progress.update(100 - progress.n)

@@ -27,7 +27,7 @@ class KeyValueStore:
         username = os.environ['USERNAME']
         namespace = os.environ['NAMESPACE']
         cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
-        self.num_workers = json.loads(cm1.data["data"])["num_nodes"]
+        self.num_workers = json.loads(cm1.data["data"])["num_workers"]
 
         # initialize KVS with default values
         if init_tables:
