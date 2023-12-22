@@ -304,9 +304,6 @@ class ETLController:
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "predict")
 
-        # close etl
-        self.exit_etl()
-
     def exit_etl(self):
         # idle all ETL Workers
         self.kvs.etl_set_task(kvs_constants.PROGRESS_COMPLETE, "")
