@@ -3,6 +3,7 @@ import gc
 import sys
 import json
 import time
+import subprocess
 import pandas as pd
 from pathlib import Path
 from kubernetes import client, config
@@ -145,7 +146,7 @@ class ETLController:
         self.logger.info("Beginning download of processed ETL val data")
         str_task = self.task_descriptions[kvs_constants.ETL_TASK_LOAD_PROCESSED]
         desc = "{} Progress".format(str_task + " " + str.capitalize("val"))
-        val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
+        val_progress = tqdm_notebook(total=100, desc=desc, unit='MB', unit_scale=True, position=0, leave=True)
         file_io = VoyagerIO(val_progress.update)
 
         # download val data from Ceph
@@ -158,29 +159,16 @@ class ETLController:
 
     def upload_processed_val_data(self):
         self.logger.info("Beginning upload of processed ETL val data")
-        str_task = self.task_descriptions[kvs_constants.ETL_TASK_LOAD_PROCESSED]
+        str_task = self.task_descriptions[kvs_constants.ETL_TASK_SAVE_PROCESSED]
         desc = "{} Progress".format(str_task + " " + str.capitalize("val"))
-        val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
+        val_progress = tqdm_notebook(total=100, desc=desc, unit='MB', unit_scale=True, position=0, leave=True)
         file_io = VoyagerIO(val_progress.update)
 
-        prefix = os.path.join(self.params.etl["etl_dir"], "val")
-        output_path = self.params.etl["val"]["output_path"]
-        exclude_prefix = prefix
-        file_io.upload(output_path, prefix, exclude_prefix)
+        remote_path = os.path.join(self.params.etl["etl_dir"], "val")
+        local_path = self.params.etl["val"]["output_path"]
+        exclude_prefix = local_path
+        file_io.upload(local_path, remote_path, exclude_prefix)
         self.logger.info("Completed upload of val data to destination from Controller")
-
-        # change ownership of output dir
-        uid, gid = self.user_ids
-        os.chown(output_path, uid, gid)
-        # Iterate through all directories and files within the current directory
-        for root, dirs, files in os.walk(output_path):
-            for dir_name in dirs:
-                dir_path = os.path.join(root, dir_name)
-                os.chown(dir_path, uid, gid)
-
-            for file_name in files:
-                file_path = os.path.join(root, file_name)
-                os.chown(file_path, uid, gid)
 
     def shard_data(self, mode):
         # load seed value
@@ -289,6 +277,10 @@ class ETLController:
                 except OSError as e:
                     print(f"Error deleting {file}: {e}")
 
+        # get user IDs
+        uid, gid = self.user_ids
+        ownership_cmd = "chown -R {uid}:{gid} {{dir_path}}".format(uid=uid, gid=gid)
+
         # check which tasks are given in the dataset locators
         etl_dir_present = self.params.etl["etl_dir"] is not None
         etl_mode_present = {
@@ -311,25 +303,30 @@ class ETLController:
                     combine_pkl("val")
 
         # if only etl_dir is given then download processed data
-        # if both etl_dir and train/val/test/predict tasks are given - upload processed data
+        # if both etl_dir and train/val/test/predict tasks are
+        # given - upload processed data, change ownership of dir
         if etl_dir_present:
             if not etl_mode_present["train"]:
                 self.process_task(kvs_constants.ETL_TASK_LOAD_PROCESSED, "train")
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "train")
+                subprocess.run(ownership_cmd.format(user_path=self.params.etl["etl_dir"]))
             # handle val data separately
             if not etl_mode_present["val"]:
                 self.download_processed_val_data()
             else:
                 self.upload_processed_val_data()
+                subprocess.run(ownership_cmd.format(user_path=self.params.etl["etl_dir"]))
             if not etl_mode_present["test"]:
                 self.process_task(kvs_constants.ETL_TASK_LOAD_PROCESSED, "test")
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "test")
+                subprocess.run(ownership_cmd.format(user_path=self.params.etl["etl_dir"]))
             if not etl_mode_present["predict"]:
                 self.process_task(kvs_constants.ETL_TASK_LOAD_PROCESSED, "predict")
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "predict")
+                subprocess.run(ownership_cmd.format(user_path=self.params.etl["etl_dir"]))
 
     def exit_etl(self):
         # idle all ETL Workers
