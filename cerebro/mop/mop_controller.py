@@ -1,9 +1,9 @@
 import os
 import time
-import uuid
 import json
 import pprint
 import random
+import hashlib
 import itertools
 import pandas as pd
 from pathlib import Path
@@ -72,7 +72,8 @@ class MOPController:
 
             # initilize MOP workers
             for w in range(self.num_workers):
-                task_id = uuid.uuid4()
+                id_str = kvs_constants.MOP_TASK_INITIALIZE
+                task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
                 self.kvs.mop_set_task(w, task_id, kvs_constants.MOP_TASK_INITIALIZE)
                 self.logger.info("Initialized MOP workers")
         else:
@@ -196,7 +197,8 @@ class MOPController:
                     self.kvs.mop_set_model_parallelism_on_worker(w, model_id, parallelism)
 
                     # set worker task
-                    task_id = uuid.uuid4()
+                    id_str = "-".join([str(i) for i in (w, model_id, parallelism)])
+                    task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
                     self.kvs.mop_set_task(w, task_id, kvs_constants.MOP_TASK_TRIALS)
 
                     self.logger.info("Scheduled trial run of parallelism {} on worker {}".format(mpl, w))
@@ -275,7 +277,8 @@ class MOPController:
                         self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
                         # set worker task
-                        task_id = uuid.uuid4()
+                        id_str = "-".join([str(i) for i in (worker_id, epoch, model_id, is_last_worker)])
+                        task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
                         self.kvs.mop_set_task(worker_id, task_id, kvs_constants.MOP_TASK_TRAIN_VAL)
 
                         self.model_on_worker[model_id] = worker_id
@@ -327,7 +330,8 @@ class MOPController:
             self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
             # set worker task
-            task_id = uuid.uuid4()
+            id_str = "-".join([str(i) for i in ("")])
+            task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
             self.kvs.mop_set_task(worker_id, task_id, kvs_constants.MOP_TASK_TEST)
             self.workers[worker_id].test_model_on_worker(model_tag, batch_size)
 
