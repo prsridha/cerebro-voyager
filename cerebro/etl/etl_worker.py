@@ -20,7 +20,7 @@ from cerebro.util.cerebro_logger import CerebroLogger
 
 
 class EtlProcess:
-    def __init__(self, worker_id, mode, shard_multiplicity, params, etl_spec, is_feature_download, progress_queue):
+    def __init__(self, worker_id, mode, shard_multiplicity, params, etl_spec, is_feature_download, progress_dict):
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("etl-worker-process")
 
@@ -28,7 +28,7 @@ class EtlProcess:
         self.params = params
         self.etl_spec = etl_spec
         self.worker_id = worker_id
-        self.queue = progress_queue
+        self.progress_dict = progress_dict
         self.shard_multiplicity = shard_multiplicity
         self.is_feature_download = is_feature_download
         self.output_path = self.params.etl[mode]["output_path"]
@@ -106,11 +106,10 @@ class EtlProcess:
             is_last_row = row_count == num_shard_rows - 1
             is_last_sub_shard = row_count / m_factor == self.shard_multiplicity
 
-            # push progress to queue at every 200th row
-            if row_count % 200 == 0 or is_last_row:
+            # push progress to dict at every 100th row
+            if row_count % 100 == 0 or is_last_row:
                 progress = (row_count + 1) / num_shard_rows
-                progress_data = {"process_id": process_id, "progress": progress}
-                self.queue.put(progress_data)
+                self.progress_dict[process_id] = progress
 
             # update row count
             row_count += 1
@@ -147,7 +146,7 @@ class ETLWorker:
         self.shards = None
         self.etl_spec = None
         self.metadata_df = None
-        self.progress_queue = None
+        self.progress_dict = None
         self.worker_id = worker_id
         self.is_feature_download = None
 
@@ -232,11 +231,10 @@ class ETLWorker:
         self.shard_metadata(mode)
 
         # initialize processes
-        progress_data = {}
         manager = multiprocessing.Manager()
-        self.progress_queue = manager.Queue()
+        self.progress_dict = manager.dict()
         proc = EtlProcess(self.worker_id, mode, self.shard_multiplicity, self.params,
-                          self.etl_spec, self.is_feature_download, self.progress_queue)
+                          self.etl_spec, self.is_feature_download, self.progress_dict)
 
         self.p.restart()
         self.p.imap(proc.process_data, self.shards)
@@ -252,20 +250,12 @@ class ETLWorker:
                 self.logger.error("Caught error in Worker {}".format(self.worker_id))
                 self.logger.error(str(err))
 
-            progress = self.progress_queue.get()
-            process_id = progress['process_id']
-            progress_value = progress['progress']
-            if progress_value == 1.0:
-                done += 1
-            if process_id not in progress_data:
-                progress_data[process_id] = 0
-            progress_data[process_id] = progress_value
+            # count number of completed processes
+            done = sum(value == 1 for value in self.progress_dict.values())
 
-            # update KVS on every 3rd de-queue
-            if kvs_update_counter % 3 == 0 or done == self.num_process:
-                percentage = (sum(progress_data.values()) / self.num_process) * 100
-                self.kvs.etl_set_worker_progress(self.worker_id, percentage)
-            kvs_update_counter += 1
+            # update KVS every half second
+            percentage = (sum(self.progress_dict.values()) / self.num_process) * 100
+            self.kvs.etl_set_worker_progress(self.worker_id, percentage)
 
         self.p.close()
         self.p.join()
