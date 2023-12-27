@@ -1,5 +1,6 @@
 import os
 import gc
+import shutil
 import sys
 import time
 import json
@@ -242,7 +243,6 @@ class ETLWorker:
 
         # track progress and update to KVS
         done = 0
-        kvs_update_counter = 0
         while done < self.num_process:
             err = self.kvs.get_error()
             if err:
@@ -263,7 +263,7 @@ class ETLWorker:
 
         # combine all Pickle files into a single file for train, test and predict modes
         if mode != "val":
-            self.logger.info("Coalescing {} dataset shards to a single file...".format(mode))
+            self.logger.info("Coalescing {} dataset shards to a single file".format(mode))
             all_files = [os.path.abspath(os.path.join(output_path, f))
                          for f in os.listdir(output_path)]
             pickle_files = [file for file in all_files if file.endswith('.pkl')]
@@ -280,6 +280,11 @@ class ETLWorker:
                     os.remove(file)
                 except OSError as e:
                     print(f"Error deleting {file}: {e}")
+
+            # delete all downloaded object files
+            self.logger.info("Deleting all {} dataset's downloaded multi-media files".format(mode))
+            downloads_dir = self.params.etl[mode]["multimedia_download_path"]
+            shutil.rmtree(downloads_dir)
 
         print("Completed process partition on worker {}".format(self.worker_id))
         self.logger.info("Completed process partition on worker {}".format(self.worker_id))

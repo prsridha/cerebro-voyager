@@ -3,7 +3,7 @@ import gc
 import sys
 import json
 import time
-import subprocess
+import shutil
 import pandas as pd
 from pathlib import Path
 from kubernetes import client, config
@@ -255,28 +255,34 @@ class ETLController:
 
         self.logger.info("ETL task {} in mode {} complete".format(str_task.lower(), mode))
 
+    def combine_val_pkl(self):
+        # combine all Pickle files into a single file
+        mode = "val"
+        output_path = self.params.etl[mode]["output_path"]
+        self.logger.info("Coalescing {} dataset shards to a single file...".format(mode))
+        all_files = [os.path.abspath(os.path.join(output_path, f))
+                     for f in os.listdir(output_path)]
+        pickle_files = [file for file in all_files if file.endswith('.pkl')]
+        all_df = []
+        for f in pickle_files:
+            df = pd.read_pickle(f)
+            all_df.append(df)
+        combined_df = pd.concat(all_df)
+        combined_df.to_pickle(os.path.join(output_path, "{}_data.pkl".format(mode)))
+
+        # delete all individual Pickle files
+        for file in pickle_files:
+            try:
+                os.remove(file)
+            except OSError as e:
+                print(f"Error deleting {file}: {e}")
+
+        # delete all downloaded object files
+        self.logger.info("Deleting all {} dataset's downloaded multi-media files".format(mode))
+        downloads_dir = self.params.etl[mode]["multimedia_download_path"]
+        shutil.rmtree(downloads_dir)
+
     def run_etl(self):
-        def combine_pkl(mode="val"):
-            # combine all Pickle files into a single file
-            output_path = self.params.etl[mode]["output_path"]
-            self.logger.info("Coalescing {} dataset shards to a single file...".format(mode))
-            all_files = [os.path.abspath(os.path.join(output_path, f))
-                         for f in os.listdir(output_path)]
-            pickle_files = [file for file in all_files if file.endswith('.pkl')]
-            all_df = []
-            for f in pickle_files:
-                df = pd.read_pickle(f)
-                all_df.append(df)
-            combined_df = pd.concat(all_df)
-            combined_df.to_pickle(os.path.join(output_path, "{}_data.pkl".format(mode)))
-
-            # delete all individual Pickle files
-            for file in pickle_files:
-                try:
-                    os.remove(file)
-                except OSError as e:
-                    print(f"Error deleting {file}: {e}")
-
         # check which tasks are given in the dataset locators
         etl_dir_present = self.params.etl["etl_dir"] is not None
         etl_mode_present = {
@@ -296,7 +302,7 @@ class ETLController:
                 # combine all pickle files only for validation dataset
                 if mode == "val":
                     # combining happens in workers for other modes
-                    combine_pkl("val")
+                    self.combine_val_pkl()
 
         # if only etl_dir is given then download processed data
         # if both etl_dir and train/val/test/predict tasks are
