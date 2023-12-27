@@ -310,7 +310,7 @@ class ETLController:
                 self.process_task(kvs_constants.ETL_TASK_LOAD_PROCESSED, "train")
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "train")
-                subprocess.run(ownership_cmd.format(user_path=self.params.etl["etl_dir"]))
+                subprocess.run(ownership_cmd.format(dir_path=self.params.etl["etl_dir"]))
             # handle val data separately
             if not etl_mode_present["val"]:
                 self.download_processed_val_data()
