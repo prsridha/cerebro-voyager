@@ -3,7 +3,6 @@ import gc
 import sys
 import json
 import time
-import shutil
 import pandas as pd
 from pathlib import Path
 from kubernetes import client, config
@@ -276,11 +275,6 @@ class ETLController:
                 os.remove(file)
             except OSError as e:
                 print(f"Error deleting {file}: {e}")
-
-        # delete all downloaded object files
-        self.logger.info("Deleting all {} dataset's downloaded multi-media files".format(mode))
-        downloads_dir = self.params.etl[mode]["multimedia_download_path"]
-        shutil.rmtree(downloads_dir)
 
     def run_etl(self):
         # check which tasks are given in the dataset locators
