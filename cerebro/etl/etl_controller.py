@@ -277,10 +277,6 @@ class ETLController:
                 except OSError as e:
                     print(f"Error deleting {file}: {e}")
 
-        # get user IDs
-        uid, gid = self.user_ids
-        ownership_cmd = "chown -R {uid}:{gid} {{dir_path}}".format(uid=uid, gid=gid)
-
         # check which tasks are given in the dataset locators
         etl_dir_present = self.params.etl["etl_dir"] is not None
         etl_mode_present = {
@@ -310,23 +306,26 @@ class ETLController:
                 self.process_task(kvs_constants.ETL_TASK_LOAD_PROCESSED, "train")
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "train")
-                subprocess.run(ownership_cmd.format(dir_path=self.params.etl["etl_dir"]))
             # handle val data separately
             if not etl_mode_present["val"]:
                 self.download_processed_val_data()
             else:
                 self.upload_processed_val_data()
-                subprocess.run(ownership_cmd.format(user_path=self.params.etl["etl_dir"]))
             if not etl_mode_present["test"]:
                 self.process_task(kvs_constants.ETL_TASK_LOAD_PROCESSED, "test")
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "test")
-                subprocess.run(ownership_cmd.format(user_path=self.params.etl["etl_dir"]))
             if not etl_mode_present["predict"]:
                 self.process_task(kvs_constants.ETL_TASK_LOAD_PROCESSED, "predict")
             else:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "predict")
-                subprocess.run(ownership_cmd.format(user_path=self.params.etl["etl_dir"]))
+
+            # update ownership of etl_dir from root to user
+            uid, gid = self.user_ids
+            ownership_cmd = "chown -R {uid}:{gid} {dir_path}".format(
+                uid=uid, gid=gid, dir_path=self.params.etl["etl_dir"]
+            )
+            os.system(ownership_cmd)
 
     def exit_etl(self):
         # idle all ETL Workers
