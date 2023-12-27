@@ -106,8 +106,8 @@ class EtlProcess:
             is_last_row = row_count == num_shard_rows - 1
             is_last_sub_shard = row_count / m_factor == self.shard_multiplicity
 
-            # push progress to queue at every 10th row
-            if row_count % 100 == 0 or is_last_row:
+            # push progress to queue at every 200th row
+            if row_count % 200 == 0 or is_last_row:
                 progress = (row_count + 1) / num_shard_rows
                 progress_data = {"process_id": process_id, "progress": progress}
                 self.queue.put(progress_data)
@@ -261,8 +261,8 @@ class ETLWorker:
                 progress_data[process_id] = 0
             progress_data[process_id] = progress_value
 
-            # update KVS on every 10th de-queue
-            if kvs_update_counter % 10 == 0:
+            # update KVS on every 3rd de-queue
+            if kvs_update_counter % 3 == 0 or done == self.num_process:
                 percentage = (sum(progress_data.values()) / self.num_process) * 100
                 self.kvs.etl_set_worker_progress(self.worker_id, percentage)
             kvs_update_counter += 1
