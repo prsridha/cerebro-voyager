@@ -256,7 +256,7 @@ class ETLWorker:
             # update KVS every half second
             percentage = (sum(self.progress_dict.values()) / self.num_process) * 100
             self.kvs.etl_set_worker_progress(self.worker_id, percentage)
-            time.sleep(0.5)
+            time.sleep(0.2)
 
         self.p.close()
         self.p.join()
