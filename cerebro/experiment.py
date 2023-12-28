@@ -128,7 +128,7 @@ class Experiment:
         self.param_grid = param_grid
         self.sub_epoch_spec = sub_epoch_spec
 
-        self.mop.initialize_controller(num_epochs, param_grid, sub_epoch_spec)
+        self.mop.initialize_controller(sub_epoch_spec, num_epochs, param_grid)
 
         # start grid search
         self.logger.info("Starting grid search...")
@@ -137,20 +137,20 @@ class Experiment:
 
         # save metrics to S3
         if save_artifacts:
-            self.mop.save_metrics_s3()
+            self.mop.save_metrics()
 
-    def run_test(self, model_tag, batch_size, output_filename, sub_epoch_spec=None):
+    def run_test(self, sub_epoch_spec, model_tag, batch_size, output_filename):
         if sub_epoch_spec:
-            self.mop.initialize_controller(0, None, sub_epoch_spec)
+            self.mop.initialize_controller(sub_epoch_spec, 0, None)
 
         if self.params.mop["models_dir"]:
             self.mop.download_models()
 
         self.mop.testing(model_tag, batch_size, output_filename)
 
-    def run_predict(self, model_tag, batch_size, output_filename, sub_epoch_spec=None):
+    def run_predict(self, sub_epoch_spec, model_tag, batch_size, output_filename):
         if sub_epoch_spec:
-            self.mop.initialize_controller(0, None, sub_epoch_spec)
+            self.mop.initialize_controller(sub_epoch_spec, 0, None, sub_epoch_spec)
 
         if self.params.mop["models_dir"]:
             self.mop.download_models()

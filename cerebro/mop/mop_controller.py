@@ -28,7 +28,6 @@ class MOPController:
 
     def __init__(self):
         self.num_models = 0
-        self.worker_names = []
         self.params = Params()
         self.num_epochs = None
         self.param_grid = None
@@ -42,11 +41,11 @@ class MOPController:
         self.model_nworkers_trained = {}
 
         # load values from cerebro-info configmap
-        namespace = os.environ['NAMESPACE']
-        username = os.environ['USERNAME']
+        self.namespace = os.environ['NAMESPACE']
+        self.username = os.environ['USERNAME']
         config.load_kube_config()
         v1 = client.CoreV1Api()
-        cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+        cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
         self.num_workers = json.loads(cm1.data["data"])["num_workers"]
 
         # save sub-epoch func in KVS
@@ -58,40 +57,63 @@ class MOPController:
                 full_path = os.path.join(directory, mode)
                 Path(full_path).mkdir(parents=True, exist_ok=True)
 
-        # get MOP workers
-        self.workers = list(range(self.num_workers))
-
-    def initialize_controller(self, num_epochs, param_grid, sub_epoch_spec):
+    def initialize_controller(self, sub_epoch_spec, num_epochs, param_grid):
         self.num_epochs = num_epochs
         self.param_grid = param_grid
         self.sub_epoch_spec = sub_epoch_spec
 
-        if sub_epoch_spec:
-            self.kvs.mop_set_spec(sub_epoch_spec)
-            self.logger.info("Saved MOP spec on KeyValueStore")
+        self.kvs.mop_set_spec(sub_epoch_spec)
+        self.logger.info("Saved MOP spec on KeyValueStore")
 
-            # initilize MOP workers
+        # scale MOP workers
+        scale_status = self.scale_workers(self.num_workers)
+        if scale_status:
+            id_str = kvs_constants.MOP_TASK_INITIALIZE
+            task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
             for w in range(self.num_workers):
-                id_str = kvs_constants.MOP_TASK_INITIALIZE
-                task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
                 self.kvs.mop_set_task(kvs_constants.MOP_TASK_INITIALIZE, w, task_id)
                 self.logger.info("Initialized MOP workers")
-        else:
-            self.kvs.mop_set_spec("")
 
-    def save_metrics_s3(self):
+    def scale_workers(self, num_workers):
+        config.load_kube_config()
+        v1 = client.AppsV1Api()
+
+        current_replicas = v1.read_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace).spec.replicas
+        if current_replicas == num_workers:
+            self.logger.info("Number of MOP workers already at {}".format(current_replicas))
+            return False
+
+        # scale up MOP workers
+        print("Scaling MOP workers to {}".format(num_workers))
+        statefulset = v1.read_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace)
+        statefulset.spec.replicas = num_workers
+        v1.replace_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace, body=statefulset)
+
+        # wait for desired number of workers
+        wait_time = 0
+        current_replicas = v1.read_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace).spec.replicas
+        while current_replicas != num_workers:
+            current_replicas = v1.read_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace).spec.replicas
+            time.sleep(0.5)
+            wait_time += 0.5
+            if wait_time >= 100:
+                raise Exception("Unable to schedule MOP Workers on Voyager")
+        return True
+
+    def save_metrics(self):
         dt_version = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
         base_dir = os.path.join(self.params.mop["output_dir"], "artifact_" + dt_version)
         print("Created save directory in S3")
 
         # save checkpoints
-        progress = tqdm_notebook(total=100, desc="Save Metrics", position=0, leave=True)
-        file_io = VoyagerIO(progress.update)
+        progress = tqdm_notebook(total=3, desc="Save Metrics", position=0, leave=True)
+        file_io = VoyagerIO()
 
         chckpt_dir = os.path.join(base_dir, "checkpoints")
         Path(chckpt_dir).mkdir(parents=True, exist_ok=True)
         from_path = self.params.mop["checkpoint_storage_path"]
         file_io.upload(from_path, chckpt_dir)
+        progress.update(1)
         print("Saved model checkpoints")
 
         # save user metrics
@@ -99,11 +121,13 @@ class MOPController:
         Path(metrics_dir).mkdir(parents=True, exist_ok=True)
         from_path = os.path.join(self.params.mop["metrics_storage_path"]["tensorboard"])
         file_io.upload(from_path, metrics_dir)
+        progress.update(1)
         from_path = os.path.join(self.params.mop["metrics_storage_path"]["user_metrics"])
         file_io.upload(from_path, metrics_dir)
+        progress.update(1)
         print("Saved model building metrics")
 
-        print("Saved metrics to S3 at {}".format(base_dir))
+        print("Saved metrics at {}".format(base_dir))
 
     def download_models(self):
         if self.params.mop["models_dir"]:
