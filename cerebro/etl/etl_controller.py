@@ -144,7 +144,7 @@ class ETLController:
     def download_processed_val_data(self):
         self.logger.info("Beginning download of processed ETL val data")
         str_task = self.task_descriptions[kvs_constants.ETL_TASK_LOAD_PROCESSED]
-        desc = "{} Progress".format(str_task + " " + str.capitalize("val")).rjust(37)
+        desc = "{} Progress".format(str_task + " " + str.capitalize("val"))
         val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
         file_io = VoyagerIO()
 
@@ -160,7 +160,7 @@ class ETLController:
     def upload_processed_val_data(self):
         self.logger.info("Beginning upload of processed ETL val data")
         str_task = self.task_descriptions[kvs_constants.ETL_TASK_SAVE_PROCESSED]
-        desc = "{} Progress".format(str_task + " " + str.capitalize("val")).rjust(37)
+        desc = "{} Progress".format(str_task + " " + str.capitalize("val"))
         val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
         file_io = VoyagerIO()
 
@@ -225,7 +225,7 @@ class ETLController:
         self.kvs.etl_set_task(task, mode)
         self.logger.info("Beginning ETL task {} in mode {}".format(str_task.lower(), mode))
 
-        desc = "{} Progress".format(str_task + " " + str.capitalize(mode)).rjust(37)
+        desc = "{} Progress".format(str_task + " " + str.capitalize(mode))
         progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
         while True:
             # check for errors and raise alert
