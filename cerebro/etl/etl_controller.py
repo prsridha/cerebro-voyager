@@ -144,9 +144,9 @@ class ETLController:
     def download_processed_val_data(self):
         self.logger.info("Beginning download of processed ETL val data")
         str_task = self.task_descriptions[kvs_constants.ETL_TASK_LOAD_PROCESSED]
-        desc = "{} Progress".format(str_task + " " + str.capitalize("val")).ljust(37)
-        val_progress = tqdm_notebook(total=100, desc=desc, unit='MB', unit_scale=True, position=0, leave=True)
-        file_io = VoyagerIO(val_progress.update)
+        desc = "{} Progress".format(str_task + " " + str.capitalize("val")).rjust(37)
+        val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
+        file_io = VoyagerIO()
 
         # download val data from Ceph
         exclude_prefix = os.path.join(self.params.etl["etl_dir"], "val")
@@ -154,19 +154,21 @@ class ETLController:
         Path(self.params.etl["val"]["output_path"]).mkdir(parents=True, exist_ok=True)
         output_path = os.path.join(self.params.etl["val"]["output_path"], "val_data.pkl")
         file_io.download(output_path, prefix, exclude_prefix)
+        val_progress.update(100)
         self.logger.info("Completed download of val data from Ceph on controller")
 
     def upload_processed_val_data(self):
         self.logger.info("Beginning upload of processed ETL val data")
         str_task = self.task_descriptions[kvs_constants.ETL_TASK_SAVE_PROCESSED]
-        desc = "{} Progress".format(str_task + " " + str.capitalize("val")).ljust(37)
+        desc = "{} Progress".format(str_task + " " + str.capitalize("val")).rjust(37)
         val_progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
-        file_io = VoyagerIO(val_progress.update)
+        file_io = VoyagerIO()
 
         remote_path = os.path.join(self.params.etl["etl_dir"], "val")
         local_path = self.params.etl["val"]["output_path"]
         exclude_prefix = local_path
         file_io.upload(local_path, remote_path, exclude_prefix)
+        val_progress.update(100)
         self.logger.info("Completed upload of val data to destination from Controller")
 
     def shard_data(self, mode):
@@ -223,7 +225,7 @@ class ETLController:
         self.kvs.etl_set_task(task, mode)
         self.logger.info("Beginning ETL task {} in mode {}".format(str_task.lower(), mode))
 
-        desc = "{} Progress".format(str_task + " " + str.capitalize(mode)).ljust(37)
+        desc = "{} Progress".format(str_task + " " + str.capitalize(mode)).rjust(37)
         progress = tqdm_notebook(total=100, desc=desc, position=0, leave=True)
         while True:
             # check for errors and raise alert
