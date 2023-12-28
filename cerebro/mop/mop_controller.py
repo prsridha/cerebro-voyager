@@ -74,7 +74,7 @@ class MOPController:
             for w in range(self.num_workers):
                 id_str = kvs_constants.MOP_TASK_INITIALIZE
                 task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
-                self.kvs.mop_set_task(w, task_id, kvs_constants.MOP_TASK_INITIALIZE)
+                self.kvs.mop_set_task(kvs_constants.MOP_TASK_INITIALIZE, w, task_id)
                 self.logger.info("Initialized MOP workers")
         else:
             self.kvs.mop_set_spec("")
@@ -197,9 +197,9 @@ class MOPController:
                     self.kvs.mop_set_model_parallelism_on_worker(w, model_id, parallelism)
 
                     # set worker task
-                    id_str = "-".join([str(i) for i in (w, model_id, parallelism)])
+                    id_str = "-".join([str(i) for i in (kvs_constants.MOP_TASK_TRIALS, w, model_id, parallelism)])
                     task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
-                    self.kvs.mop_set_task(w, task_id, kvs_constants.MOP_TASK_TRIALS)
+                    self.kvs.mop_set_task(kvs_constants.MOP_TASK_TRIALS, w, task_id)
 
                     self.logger.info("Scheduled trial run of parallelism {} on worker {}".format(mpl, w))
                 else:
@@ -277,9 +277,9 @@ class MOPController:
                         self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
                         # set worker task
-                        id_str = "-".join([str(i) for i in (worker_id, epoch, model_id, is_last_worker)])
+                        id_str = "-".join([str(i) for i in (kvs_constants.MOP_TASK_TRAIN_VAL, worker_id, epoch, model_id, is_last_worker)])
                         task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
-                        self.kvs.mop_set_task(worker_id, task_id, kvs_constants.MOP_TASK_TRAIN_VAL)
+                        self.kvs.mop_set_task(kvs_constants.MOP_TASK_TRAIN_VAL, worker_id, task_id)
 
                         self.model_on_worker[model_id] = worker_id
                         self.worker_running_model[worker_id] = model_id
@@ -313,8 +313,6 @@ class MOPController:
                             model_progresses[model_id].update(update_val)
                             self.logger.info("Model:" + str(model_id) + " trained on " + str(self.model_nworkers_trained[model_id]) + "/" + str(n_workers))
 
-                            # print("Model:" + str(model_id) + " trained on " + str(self.model_nworkers_trained[model_id]) + "/" + str(n_workers))
-                            self.logger.info("Model:" + str(model_id) + " trained on " + str(self.model_nworkers_trained[model_id]) + "/" + str(n_workers))
         self.logger.info("Ending epoch...")
 
         # close progress bars
@@ -325,15 +323,17 @@ class MOPController:
         output_dir = self.params.mop["test_output_path"]
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+        # update KVS
+        self.kvs.mop_set_test_params(model_tag, batch_size)
+
+        # set worker task
+        id_str = "-".join([str(i) for i in (kvs_constants.MOP_TASK_TEST, model_tag, batch_size)])
+        task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
+
         # run test on all workers
         for worker_id in range(self.num_workers):
             self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
-
-            # set worker task
-            id_str = "-".join([str(i) for i in ("")])
-            task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
-            self.kvs.mop_set_task(worker_id, task_id, kvs_constants.MOP_TASK_TEST)
-            self.workers[worker_id].test_model_on_worker(model_tag, batch_size)
+            self.kvs.mop_set_task(kvs_constants.MOP_TASK_TEST, worker_id, task_id)
 
         # update completion progress
         progress = tqdm_notebook(total=100, desc="Testing Progress", position=0, leave=False)
@@ -361,19 +361,21 @@ class MOPController:
         output_dir = self.params.mop["prediction_output_path"]
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+        # update KVS
+        self.kvs.mop_set_predict_params(model_tag, batch_size)
+
         # set worker task
-        self.kvs.mop_set_task(kvs_constants.MOP_TASK_TEST)
+        id_str = "-".join([str(i) for i in (kvs_constants.MOP_TASK_TEST, model_tag, batch_size)])
+        task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
+
+        # set worker task
+        for worker_id in range(self.num_workers):
+            self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
+            self.kvs.mop_set_task(kvs_constants.MOP_TASK_PREDICT, worker_id, task_id)
 
         # run test on all workers
         for worker_id in range(self.num_workers):
             self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
-            try:
-                self.workers[worker_id].test_model_on_worker(model_tag, batch_size)
-            except Exception as e:
-                self.logger.error(
-                    "Failed to schedule prediction of model {} on worker {}. Error {}".format(model_tag, worker_id, str(e)))
-                print(
-                    "Failed to schedule prediction of model {} on worker {}. Error {}".format(model_tag, worker_id, str(e)))
 
         # update completion progress
         progress = tqdm_notebook(total=100, desc="Inference Progress", position=0, leave=False)

@@ -224,6 +224,8 @@ class CerebroWorker:
                     self.train_model_on_worker(d["model_id"], d["epoch"], d["is_last_worker"])
                 elif task == kvs_constants.MOP_TASK_TEST:
                     pass
+                elif task == kvs_constants.MOP_TASK_PREDICT:
+                    pass
                 elif task == kvs_constants.PROGRESS_COMPLETE:
                     done = True
                     self.logger.info("MOP tasks complete on worker{}".format(self.worker_id))

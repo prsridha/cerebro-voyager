@@ -107,3 +107,17 @@ CREATE TABLE IF NOT EXISTS mop_model_parallelism_on_worker (
     model_id INTEGER,
     parallelism TEXT
 );
+
+-- MOP Test Params
+CREATE TABLE IF NOT EXISTS mop_test_params (
+    id INTEGER PRIMARY KEY,
+    model_tag TEXT,
+    batch_size INT
+);
+
+-- MOP Predict Params
+CREATE TABLE IF NOT EXISTS mop_predict_params (
+    id INTEGER PRIMARY KEY,
+    model_tag TEXT,
+    batch_size INT
+);

@@ -290,7 +290,7 @@ class KeyValueStore:
         return func
 
     # current mop task
-    def mop_set_task(self, worker_id, task_id, task):
+    def mop_set_task(self, task, worker_id, task_id):
         query = """
             INSERT OR REPLACE
             INTO mop_task (worker_id, task_id, task)
@@ -473,3 +473,49 @@ class KeyValueStore:
         time_taken = cursor.fetchone()[0]
         cursor.close()
         return time_taken
+
+    def mop_set_test_params(self, model_tag, batch_size):
+        query = """
+            INSERT OR REPLACE
+            INTO mop_test_params (id, model_tag, batch_size)
+            VALUES (?, ?, ?)
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, model_tag, batch_size))
+        cursor.close()
+        self.conn.commit()
+
+    def mop_get_test_params(self):
+        query = """
+            SELECT model_tag, batch_size
+            FROM mop_test_params
+            WHERE id = ?
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, ))
+        model_tag, batch_size = cursor.fetchone()
+        cursor.close()
+        return model_tag, batch_size
+
+    def mop_set_predict_params(self, model_tag, batch_size):
+        query = """
+                    INSERT OR REPLACE
+                    INTO mop_predict_params (id, model_tag, batch_size)
+                    VALUES (?, ?, ?)
+                """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0, model_tag, batch_size))
+        cursor.close()
+        self.conn.commit()
+
+    def mop_get_predict_params(self):
+        query = """
+                    SELECT model_tag, batch_size
+                    FROM mop_predict_params
+                    WHERE id = ?
+                """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (0,))
+        model_tag, batch_size = cursor.fetchone()
+        cursor.close()
+        return model_tag, batch_size
