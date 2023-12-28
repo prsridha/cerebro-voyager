@@ -388,13 +388,13 @@ class KeyValueStore:
     # model_id to model mapping
     def mop_set_model_mapping(self, model_map):
         cursor = self.conn.cursor()
-        for model_id, model_config in model_map:
+        for model_id, model_config in enumerate(model_map):
             query = """
                 INSERT OR REPLACE
                 INTO mop_model_mapping (model_id, model_config)
                 VALUES (?, ?)
             """
-            cursor.execute(query, (model_id, model_config))
+            cursor.execute(query, (model_id, json.dumps(model_config)))
         cursor.close()
         self.conn.commit()
 
@@ -407,9 +407,9 @@ class KeyValueStore:
                 WHERE model_id = ?
             """
             cursor.execute(query, (model_id,))
-            rows = cursor.fetchone()
+            row = cursor.fetchone()[0]
             cursor.close()
-            return rows[0]
+            return json.loads(row)
         else:
             query = """
                 SELECT *
@@ -418,7 +418,7 @@ class KeyValueStore:
             cursor.execute(query)
             rows = cursor.fetchall()
             cursor.close()
-            data_dict = {row[0]: row[1] for row in rows}
+            data_dict = [json.loads(d) for d in rows]
             return data_dict
 
     # model_id to parallelism mapping
