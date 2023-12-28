@@ -55,18 +55,13 @@ class KeyValueStore:
             self.etl_set_worker_status(w, "")
             self.etl_set_worker_progress(w, 0)
 
-        # # set mop task and spec
-        # self.mop_set_spec("")
+        # set mop task and spec
+        self.mop_set_spec("")
         # self.mop_set_task("")
-        #
-        # # set all mop worker statuses to empty
-        # for w in range(num_workers):
-        #     self.mop_set_worker_status(w, "")
-        #
-        # # mark as initialized
-        # path = self.key_paths["kvs_init"]
-        # with open(path, "w+") as f:
-        #     json.dump("true", f)
+
+        # set all mop worker statuses to empty
+        for w in range(num_workers):
+            self.mop_set_worker_status(w, "")
 
     # dataset locators
     def set_dataset_locators(self, locators):
