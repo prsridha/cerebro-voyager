@@ -260,11 +260,12 @@ class ETLWorker:
 
         self.p.close()
         self.p.join()
+        self.progress_dict
 
         # delete all downloaded object files
-        self.logger.info("Deleting all {} dataset's downloaded multi-media files".format(mode))
-        downloads_dir = self.params.etl[mode]["multimedia_download_path"]
-        shutil.rmtree(downloads_dir)
+        # self.logger.info("Deleting all {} dataset's downloaded multi-media files".format(mode))
+        # downloads_dir = self.params.etl[mode]["multimedia_download_path"]
+        # shutil.rmtree(downloads_dir)
 
         # combine all Pickle files into a single file for train, test and predict modes
         if mode != "val":
