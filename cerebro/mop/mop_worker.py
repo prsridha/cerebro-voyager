@@ -234,6 +234,7 @@ class CerebroWorker:
                 print("No new tasks...")
                 time.sleep(0.5)
             else:
+                print("In else")
                 if task == kvs_constants.MOP_TASK_TRIALS:
                     self.logger.info("Received task - Sampling in worker {}".format(self.worker_id))
                     model_id, parallelism_name = self.kvs.mop_get_model_parallelism_on_worker(self.worker_id)
