@@ -83,7 +83,7 @@ class CerebroWorker:
                                              "model_object_{}.pt".format(model_id))
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path)
 
-        print("Sampling model {} on worker {}".format(model_id, self.worker_id))
+        self.logger.info("Sampling model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
 
         # call the train function
         start = time.time()
@@ -92,7 +92,7 @@ class CerebroWorker:
 
         time_elapsed = end - start
         self.kvs.mop_set_sample_time(model_id, parallelism_name, time_elapsed)
-        self.logger.info("Completed parallelism sampling of model {} on worker {}".format(model_id, self.worker_id))
+        self.logger.info("Completed parallelism sampling of model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
