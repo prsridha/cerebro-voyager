@@ -234,14 +234,18 @@ class CerebroWorker:
                 time.sleep(0.5)
             else:
                 if task == kvs_constants.MOP_TASK_TRIALS:
+                    self.logger.info("Received task - Sampling in worker {}".format(self.worker_id))
                     model_id, parallelism_name = self.kvs.mop_get_model_parallelism_on_worker(self.worker_id)
                     self.sample_parallelism_on_worker(model_id, parallelism_name)
                 elif task == kvs_constants.MOP_TASK_TRAIN_VAL:
+                    self.logger.info("Received task - Train/Val in worker {}".format(self.worker_id))
                     d = self.kvs.mop_get_models_on_worker(self.worker_id)
                     self.train_model_on_worker(d["model_id"], d["epoch"], d["is_last_worker"])
                 elif task == kvs_constants.MOP_TASK_TEST:
+                    self.logger.info("Received task - Test in worker {}".format(self.worker_id))
                     pass
                 elif task == kvs_constants.MOP_TASK_PREDICT:
+                    self.logger.info("Received task - Inference in worker {}".format(self.worker_id))
                     pass
                 elif task == kvs_constants.PROGRESS_COMPLETE:
                     done = True
