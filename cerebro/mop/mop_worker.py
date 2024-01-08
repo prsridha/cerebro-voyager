@@ -66,6 +66,9 @@ class CerebroWorker:
         self.logger.info("Subepoch init worker called")
 
     def sample_parallelism(self, ParallelismExecutor, model_id, model_config, parallelism_name):
+        self.logger.info(
+            "Sampling model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
+
         # obtain seed value
         seed = self.kvs.get_seed()
 
@@ -83,7 +86,7 @@ class CerebroWorker:
                                              "model_object_{}.pt".format(model_id))
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path)
 
-        self.logger.info("Sampling model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
+        self.logger.info("Created parallelism object")
 
         # call the train function
         start = time.time()
