@@ -10,3 +10,5 @@ oyaml==1.0
     # via -r requirements.in
 pyyaml==6.0.1
     # via oyaml
+pillow==6.2.2
+    # via -r requirements.in
