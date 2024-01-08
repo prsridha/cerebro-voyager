@@ -229,6 +229,7 @@ class CerebroWorker:
             self.logger.info("Recovery MOP_TASK_INITIALIZE completed on worker{}.".format(self.worker_id))
 
         while True:
+            print("TASK, ID - ", task, task_id)
             if (prev_task, prev_task_id) == (task, task_id):
                 # no new tasks
                 time.sleep(0.5)
