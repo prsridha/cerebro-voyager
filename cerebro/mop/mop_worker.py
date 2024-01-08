@@ -83,6 +83,8 @@ class CerebroWorker:
                                              "model_object_{}.pt".format(model_id))
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path)
 
+        print("Sampling model {} on worker {}".format(model_id, self.worker_id))
+
         # call the train function
         start = time.time()
         parallelism.execute_sample(self.sub_epoch_spec.train, sampled_dataset)
