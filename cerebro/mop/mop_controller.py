@@ -100,7 +100,7 @@ class MOPController:
                 raise Exception("Unable to schedule MOP Workers on Voyager")
         return True
 
-    def save_metrics(self):
+    def save_artifacts(self):
         dt_version = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
         base_dir = os.path.join(self.params.mop["output_dir"], "artifact_" + dt_version)
         print("Created save directory in S3")

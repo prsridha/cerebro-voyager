@@ -1,15 +1,19 @@
 import os
 import gc
-import sys
+import dill
 import json
 import time
+import base64
 import random
 import threading
 from pathlib import Path
+
+import pandas as pd
 from kubernetes import client, config
 
 from cerebro.util.params import Params
 import cerebro.kvs.constants as kvs_constants
+from cerebro.util.save_metrics import SaveMetrics
 from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.util.coalesce_dataset import CoalesceDataset
@@ -40,7 +44,6 @@ class CerebroWorker:
         cm = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
         cm_data = json.loads(cm.data["data"])
         self.sample_size = cm_data["sample_size"]
-        self.metrics_cycle_size = cm_data["metrics_cycle_size"]
 
         # add user repo dir to sys path for library discovery
         # sys.path.insert(0, user_code_path)
@@ -106,9 +109,18 @@ class CerebroWorker:
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path)
 
         # call the train function
-        parallelism.execute_train(self.sub_epoch_spec.train, self.sub_epoch_spec.metrics_agg, dataset, self.metrics_cycle_size, model_id)
+        parallelism.execute_train(dataset, model_id)
 
         if is_last_worker:
+            # aggregate and plot train epoch metrics
+            user_metrics_func = dill.loads(base64.b64decode(self.sub_epoch_spec.metrics_agg))
+            csv_path = os.path.join(self.params.mop["metrics_storage_path"]["user_metrics"], "train",
+                                    "{}.csv".format(model_id))
+            metrics_df = pd.read_csv(csv_path)
+            reduced_df = user_metrics_func("train", model_config, metrics_df)
+            SaveMetrics.save_to_tensorboard(reduced_df, "train_epoch", model_id, epoch)
+
+            # run validation
             self.validate_model(parallelism, model_id, epoch)
             self.logger.info("completed validation of model {} on worker {}".format(model_id, self.worker_id))
             print("completed validation of model {} on worker {}".format(model_id, self.worker_id))

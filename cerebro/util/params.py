@@ -89,7 +89,7 @@ class Params:
             "output_dir": params["output_dir"] if "output_dir" in params else None,
             "test_output_path": "/data/data_storage/test_output",
             "checkpoint_storage_path": "/data/checkpoint_storage",
-            "prediction_output_path": "/data/data_storage/prediction_output"
+            "predict_output_path": "/data/data_storage/prediction_output"
         }
 
         # MOP Params

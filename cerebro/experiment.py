@@ -137,7 +137,7 @@ class Experiment:
 
         # save metrics to S3
         if save_artifacts:
-            self.mop.save_metrics()
+            self.mop.save_artifacts()
 
     def run_test(self, sub_epoch_spec, model_tag, batch_size, output_filename):
         if sub_epoch_spec:
