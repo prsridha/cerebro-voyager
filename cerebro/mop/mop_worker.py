@@ -184,8 +184,8 @@ class CerebroWorker:
         self.logger.info("Thread started in sample_parallelism_on_worker")
         print("Thread started in sample_parallelism_on_worker")
 
-        print("trial run of model {} on worker {} for parallelism {}".format(model_id, self.worker_id, parallelism_name))
-        self.logger.info("trial run of model {} on worker {} for parallelism {}".format(model_id, self.worker_id, parallelism_name))
+        print("Trial run of model {} on worker {} for parallelism {}".format(model_id, self.worker_id, parallelism_name))
+        self.logger.info("Trial run of model {} on worker {} for parallelism {}".format(model_id, self.worker_id, parallelism_name))
 
     def train_model_on_worker(self, model_id, epoch, is_last_worker):
         # attempting garbage collection of previous threads
