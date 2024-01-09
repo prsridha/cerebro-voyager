@@ -70,7 +70,8 @@ class CerebroWorker:
             "Sampling model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
 
         # obtain seed value
-        seed = self.kvs.get_seed()
+        kvs = KeyValueStore()
+        seed = kvs.get_seed()
 
         # obtain paths
         sample_data_path = os.path.join(self.params.etl["train"]["output_path"], "train_data{}.pkl".format(self.worker_id))
@@ -94,11 +95,11 @@ class CerebroWorker:
         end = time.time()
 
         time_elapsed = end - start
-        self.kvs.mop_set_sample_time(model_id, parallelism_name, time_elapsed)
+        kvs.mop_set_sample_time(model_id, parallelism_name, time_elapsed)
         self.logger.info("Completed parallelism sampling of model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
 
         # set worker status as complete
-        self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
+        kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
     def train_model(self, ParallelismExecutor, epoch, model_id, model_config, is_last_worker):
         print("training model {} on worker {}".format(model_id, self.worker_id))
@@ -131,7 +132,8 @@ class CerebroWorker:
             print("completed validation of model {} on worker {}".format(model_id, self.worker_id))
 
         # set worker status as complete
-        self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
+        kvs = KeyValueStore()
+        kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
     def validate_model(self, parallelism, model_id, epoch):
         # create dataset object
@@ -164,7 +166,8 @@ class CerebroWorker:
         parallelism.execute_test(self.sub_epoch_spec.val_test, dataset, output_path)
 
         # set worker status as complete
-        self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
+        kvs = KeyValueStore()
+        kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
     def sample_parallelism_on_worker(self, model_id, parallelism_name):
         # attempting garbage collection of previous threads
