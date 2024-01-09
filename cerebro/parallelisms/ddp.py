@@ -121,6 +121,7 @@ class DDPExecutor(Parallelism):
         # empty GPU cache
         torch.cuda.empty_cache()
 
+        self.logger.info("OKAT TILL HERE")
         print("OKAT TILL HERE")
 
         # load user_func from serialized str

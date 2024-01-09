@@ -128,6 +128,9 @@ class FSDPExecutor(Parallelism):
         # empty GPU cache
         torch.cuda.empty_cache()
 
+        self.logger.info("OKAT TILL HERE")
+        print("OKAT TILL HERE")
+
         # load user_func from serialized str
         user_func = dill.loads(base64.b64decode(user_func_str))
         user_metrics_func = dill.loads(base64.b64decode(user_metrics_func_str)) if user_metrics_func_str else None
