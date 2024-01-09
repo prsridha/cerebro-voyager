@@ -218,7 +218,7 @@ class CerebroWorker:
     def server_forever(self):
         done = False
         prev_task, prev_task_id = None, None
-        task, task_id = self.kvs.mop_get_task(self.worker_id)
+        task_id, task = self.kvs.mop_get_task(self.worker_id)
         if task and task != kvs_constants.MOP_TASK_INITIALIZE:
             # recovered
             self.logger.info("Worker{} recovery detected in MOP".format(self.worker_id))
@@ -229,7 +229,6 @@ class CerebroWorker:
             self.logger.info("Recovery MOP_TASK_INITIALIZE completed on worker{}.".format(self.worker_id))
 
         while True:
-            print("TASK, ID - ", task, task_id)
             if (prev_task, prev_task_id) == (task, task_id):
                 # no new tasks
                 time.sleep(0.5)
