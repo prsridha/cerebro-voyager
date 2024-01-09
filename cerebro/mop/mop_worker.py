@@ -85,7 +85,7 @@ class CerebroWorker:
         # create parallelism object of given Parallelism class
         model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(model_id))
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0)
 
         self.logger.info("Created parallelism object")
 
@@ -112,7 +112,7 @@ class CerebroWorker:
         # define necessary paths and create parallelism object
         model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(model_id))
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, epoch)
 
         # call the train function
         parallelism.execute_train(dataset, model_id)
@@ -141,7 +141,7 @@ class CerebroWorker:
         dataset = CoalesceDataset(val_data_path)
 
         # run validation via parallelism
-        parallelism.execute_val(self.sub_epoch_spec.val_test, self.sub_epoch_spec.metrics_agg, dataset, model_id, epoch)
+        parallelism.execute_val(dataset, model_id)
 
     def test_model(self, ParallelismExecutor, model_tag, batch_size):
         # create dataset object
@@ -163,7 +163,7 @@ class CerebroWorker:
         # run test via parallelism
         output_path = os.path.join(self.params.mop["test_output_path"])
         Path(os.path.dirname(output_path)).mkdir(exist_ok=True)
-        parallelism.execute_test(self.sub_epoch_spec.val_test, dataset, output_path)
+        parallelism.execute_test(dataset)
 
         # set worker status as complete
         kvs = KeyValueStore()
