@@ -105,8 +105,8 @@ class CerebroWorker:
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
     def train_model(self, model_id, epoch, is_last_worker):
-        print("training model {} on worker {}".format(model_id, self.worker_id))
-        self.logger.info("training model {} on worker {}".format(model_id, self.worker_id))
+        print("Training model {} on worker {}".format(model_id, self.worker_id))
+        self.logger.info("Training model {} on worker {}".format(model_id, self.worker_id))
 
         # create dataset object
         train_data_path = os.path.join(self.params.etl["train"]["output_path"], "train_data{}.pkl".format(self.worker_id))
@@ -127,17 +127,16 @@ class CerebroWorker:
 
         if is_last_worker:
             # aggregate and plot train epoch metrics
-            user_metrics_func = dill.loads(base64.b64decode(self.sub_epoch_spec.metrics_agg))
             csv_path = os.path.join(self.params.mop["metrics_storage_path"]["user_metrics"], "train",
                                     "{}.csv".format(model_id))
             metrics_df = pd.read_csv(csv_path)
-            reduced_df = user_metrics_func("train", model_config, metrics_df)
+            reduced_df = self.sub_epoch_spec.metrics_agg("train", model_config, metrics_df)
             SaveMetrics.save_to_tensorboard(reduced_df, "train_epoch", model_id, epoch)
 
             # run validation
             self.validate_model(model_id, parallelism)
-            self.logger.info("completed validation of model {} on worker {}".format(model_id, self.worker_id))
-            print("completed validation of model {} on worker {}".format(model_id, self.worker_id))
+            self.logger.info("Completed validation of model {} on worker {}".format(model_id, self.worker_id))
+            print("Completed validation of model {} on worker {}".format(model_id, self.worker_id))
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
@@ -195,29 +194,23 @@ class CerebroWorker:
         while True:
             if (prev_task, prev_task_id) == (task, task_id):
                 # no new tasks
-                print("no new tasks - ", task_id, task)
                 time.sleep(0.5)
             else:
                 if task == kvs_constants.MOP_TASK_TRIALS:
-                    print("SAMPLING - ", task_id, task)
                     self.logger.info("Received task - Sampling in worker {}".format(self.worker_id))
                     model_id, parallelism_name = self.kvs.mop_get_model_parallelism_on_worker(self.worker_id)
                     self.sample_parallelism(model_id, parallelism_name)
                 elif task == kvs_constants.MOP_TASK_TRAIN_VAL:
-                    print("TRAIN")
                     self.logger.info("Received task - Train/Val in worker {}".format(self.worker_id))
                     d = self.kvs.mop_get_models_on_worker(self.worker_id)
                     self.train_model(d["model_id"], d["epoch"], d["is_last_worker"])
                 elif task == kvs_constants.MOP_TASK_TEST:
-                    print("test")
                     self.logger.info("Received task - Test in worker {}".format(self.worker_id))
                     pass
                 elif task == kvs_constants.MOP_TASK_PREDICT:
-                    print("pred")
                     self.logger.info("Received task - Inference in worker {}".format(self.worker_id))
                     pass
                 elif task == kvs_constants.PROGRESS_COMPLETE:
-                    print("complete")
                     done = True
                     self.logger.info("MOP tasks complete on worker{}".format(self.worker_id))
 
