@@ -65,13 +65,12 @@ class CerebroWorker:
         self.sub_epoch_spec.initialize_worker()
         self.logger.info("Subepoch init worker called")
 
-    def sample_parallelism(self, ParallelismExecutor, model_id, model_config, parallelism_name):
+    def sample_parallelism(self, model_id, parallelism_name):
         self.logger.info(
             "Sampling model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
 
         # obtain seed value
-        kvs = KeyValueStore()
-        seed = kvs.get_seed()
+        seed = self.kvs.get_seed()
 
         # obtain paths
         sample_data_path = os.path.join(self.params.etl["train"]["output_path"], "train_data{}.pkl".format(self.worker_id))
@@ -82,7 +81,11 @@ class CerebroWorker:
         sampled_indices = random.Random(seed).sample(range(len(dataset)), num_samples)
         sampled_dataset = Subset(dataset, sampled_indices)
 
+        # get model hyperparameters
+        model_config = self.kvs.mop_get_model_mapping(model_id)
+
         # create parallelism object of given Parallelism class
+        ParallelismExecutor = get_parallelism_executor(parallelism_name)
         model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(model_id))
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0)
@@ -95,13 +98,13 @@ class CerebroWorker:
         end = time.time()
 
         time_elapsed = end - start
-        kvs.mop_set_sample_time(model_id, parallelism_name, time_elapsed)
+        self.kvs.mop_set_sample_time(model_id, parallelism_name, time_elapsed)
         self.logger.info("Completed parallelism sampling of model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
 
         # set worker status as complete
-        kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
+        self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
-    def train_model(self, ParallelismExecutor, epoch, model_id, model_config, is_last_worker):
+    def train_model(self, model_id, epoch, is_last_worker):
         print("training model {} on worker {}".format(model_id, self.worker_id))
         self.logger.info("training model {} on worker {}".format(model_id, self.worker_id))
 
@@ -109,9 +112,14 @@ class CerebroWorker:
         train_data_path = os.path.join(self.params.etl["train"]["output_path"], "train_data{}.pkl".format(self.worker_id))
         dataset = CoalesceDataset(train_data_path)
 
+        # get the best parallelism class for this model
+        p_name = self.kvs.mop_get_parallelism_mapping(model_id)
+        ParallelismExecutor = get_parallelism_executor(p_name)
+
         # define necessary paths and create parallelism object
         model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(model_id))
+        model_config = self.kvs.mop_get_model_mapping(model_id)
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, epoch)
 
         # call the train function
@@ -127,15 +135,14 @@ class CerebroWorker:
             SaveMetrics.save_to_tensorboard(reduced_df, "train_epoch", model_id, epoch)
 
             # run validation
-            self.validate_model(parallelism, model_id, epoch)
+            self.validate_model(model_id, parallelism)
             self.logger.info("completed validation of model {} on worker {}".format(model_id, self.worker_id))
             print("completed validation of model {} on worker {}".format(model_id, self.worker_id))
 
         # set worker status as complete
-        kvs = KeyValueStore()
-        kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
+        self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
-    def validate_model(self, parallelism, model_id, epoch):
+    def validate_model(self, model_id, parallelism):
         # create dataset object
         val_data_path = os.path.join(self.params.etl["val"]["output_path"], "val_data.pkl")
         dataset = CoalesceDataset(val_data_path)
@@ -143,7 +150,7 @@ class CerebroWorker:
         # run validation via parallelism
         parallelism.execute_val(dataset, model_id)
 
-    def test_model(self, ParallelismExecutor, model_tag, batch_size):
+    def test_model(self, model_tag, batch_size):
         # create dataset object
         test_data_path = os.path.join(self.params.etl["test"]["output_path"], "test_data{}.pkl".format(self.worker_id))
         dataset = CoalesceDataset(test_data_path)
@@ -156,6 +163,10 @@ class CerebroWorker:
             model_tag_dir = model_tag.split(".")[0]
             model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], model_tag_dir, model_tag)
 
+        # default parallelism to FSDP
+        p_name = "FSDP"
+        ParallelismExecutor = get_parallelism_executor(p_name)
+
         # create parallelism object
         model_config = {"batch_size": batch_size}
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path)
@@ -166,57 +177,7 @@ class CerebroWorker:
         parallelism.execute_test(dataset)
 
         # set worker status as complete
-        kvs = KeyValueStore()
-        kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
-
-    def sample_parallelism_on_worker(self, model_id, parallelism_name):
-        # attempting garbage collection of previous threads
-        gc.collect()
-
-        # get the best parallelism class for this model
-        ParallelismExecutor = get_parallelism_executor(parallelism_name)
-
-        # get model hyperparameters
-        model_config = self.kvs.mop_get_model_mapping(model_id)
-        thread = threading.Thread(target=self.sample_parallelism, args=(ParallelismExecutor, model_id, model_config, parallelism_name))
-        thread.start()
-
-        self.logger.info("Thread started in sample_parallelism_on_worker")
-        print("Thread started in sample_parallelism_on_worker")
-
-        print("Trial run of model {} on worker {} for parallelism {}".format(model_id, self.worker_id, parallelism_name))
-        self.logger.info("Trial run of model {} on worker {} for parallelism {}".format(model_id, self.worker_id, parallelism_name))
-
-    def train_model_on_worker(self, model_id, epoch, is_last_worker):
-        # attempting garbage collection of previous threads
-        gc.collect()
-
-        # get the best parallelism class for this model
-        p_name = self.kvs.mop_get_parallelism_mapping(model_id)
-        ParallelismExecutor = get_parallelism_executor(p_name)
-
-        # get model hyperparameters
-        model_config = self.kvs.mop_get_model_mapping(model_id)
-        thread = threading.Thread(target=self.train_model, args=(ParallelismExecutor, epoch, model_id, model_config, is_last_worker))
-        thread.start()
-
-        self.logger.info("Thread started in train_model_on_worker")
-        print("Thread started in train_model_on_worker")
-
-    def test_model_on_worker(self, model_tag, batch_size):
-        # attempting garbage collection of previous threads
-        gc.collect()
-
-        # default parallelism to FSDP
-        p_name = "FSDP"
-        ParallelismExecutor = get_parallelism_executor(p_name)
-
-        # begin test
-        thread = threading.Thread(target=self.test_model, args=(ParallelismExecutor, model_tag, batch_size))
-        thread.start()
-
-        self.logger.info("Thread started in test_model_on_worker")
-        print("Thread started in test_model_on_worker")
+        self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
     def server_forever(self):
         done = False
@@ -240,12 +201,12 @@ class CerebroWorker:
                     print("SAMPLING")
                     self.logger.info("Received task - Sampling in worker {}".format(self.worker_id))
                     model_id, parallelism_name = self.kvs.mop_get_model_parallelism_on_worker(self.worker_id)
-                    self.sample_parallelism_on_worker(model_id, parallelism_name)
+                    self.sample_parallelism(model_id, parallelism_name)
                 elif task == kvs_constants.MOP_TASK_TRAIN_VAL:
                     print("TRAIN")
                     self.logger.info("Received task - Train/Val in worker {}".format(self.worker_id))
                     d = self.kvs.mop_get_models_on_worker(self.worker_id)
-                    self.train_model_on_worker(d["model_id"], d["epoch"], d["is_last_worker"])
+                    self.train_model(d["model_id"], d["epoch"], d["is_last_worker"])
                 elif task == kvs_constants.MOP_TASK_TEST:
                     print("test")
                     self.logger.info("Received task - Test in worker {}".format(self.worker_id))
@@ -259,9 +220,8 @@ class CerebroWorker:
                     done = True
                     self.logger.info("MOP tasks complete on worker{}".format(self.worker_id))
 
-                # mark task as complete in worker
-                print("out")
-                self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
+                # attempting garbage collection of previous threads
+                gc.collect()
 
             # check for errors:
             err = self.kvs.get_error()
