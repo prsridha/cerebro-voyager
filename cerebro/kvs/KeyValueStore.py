@@ -425,7 +425,7 @@ class KeyValueStore:
     def mop_set_parallelism_mapping(self, model_id, parallelism):
         query = """
             INSERT OR REPLACE
-            INTO mop_model_on_worker (model_id, parallelism)
+            INTO mop_parallelism_mapping (model_id, parallelism)
             VALUES (?, ?)
         """
         cursor = self.conn.cursor()
