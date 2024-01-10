@@ -109,7 +109,7 @@ class Experiment:
 
         self.logger.info("Downloaded miscellaneous files")
 
-    def run_etl(self, etl_spec=None, fraction=1, seed=0):
+    def run_etl(self, etl_spec=None, fraction=1, seed=1):
         # set seed value in KVS
         self.kvs.set_seed(seed)
 
@@ -119,7 +119,7 @@ class Experiment:
         print("ETL complete")
         self.etl.exit_etl()
 
-    def run_fit(self, sub_epoch_spec, param_grid, num_epochs, seed=0, save_artifacts=True):
+    def run_fit(self, sub_epoch_spec, param_grid, num_epochs, seed=1, save_artifacts=True):
         # set seed value in KVS
         self.kvs.set_seed(seed)
 
