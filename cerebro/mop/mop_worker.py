@@ -195,6 +195,7 @@ class CerebroWorker:
         while True:
             if (prev_task, prev_task_id) == (task, task_id):
                 # no new tasks
+                print("no new tasks")
                 time.sleep(0.5)
             else:
                 if task == kvs_constants.MOP_TASK_TRIALS:
