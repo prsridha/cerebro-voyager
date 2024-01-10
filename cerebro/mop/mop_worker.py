@@ -238,7 +238,7 @@ class CerebroWorker:
                 # wait for MOP Controller to close workers
                 time.sleep(1)
             else:
-                task, task_id = self.kvs.mop_get_task(self.worker_id)
+                task_id, task = self.kvs.mop_get_task(self.worker_id)
 
 def main():
     worker = CerebroWorker()
