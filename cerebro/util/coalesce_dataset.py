@@ -1,5 +1,4 @@
 import gc
-import torch
 import pandas as pd
 from torch.utils.data import Dataset
 
@@ -7,7 +6,6 @@ from torch.utils.data import Dataset
 class CoalesceDataset(Dataset):
     def __init__(self, file_path):
         gc.collect()
-        torch.cuda.empty_cache()
         self.file_path = file_path
 
         # this reads entire file to memory
@@ -18,7 +16,6 @@ class CoalesceDataset(Dataset):
 
     def __getitem__(self, idx):
         gc.collect()
-        torch.cuda.empty_cache()
 
         row_id = idx
         input_tensor = self.df["input_tensor"].iloc[idx]
