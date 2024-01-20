@@ -26,9 +26,9 @@ from cerebro.parallelisms.parallelism_spec import Parallelism
 device = torch.device('hpu')
 
 def setup(rank, world_size):
-    os.environ["ID"] = str(rank)
-    os.environ['MASTER_PORT'] = '12355'
     os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+    os.environ["ID"] = str(rank)
     warnings.filterwarnings("ignore")
 
     # initialize the process group
@@ -43,8 +43,8 @@ class DDPExecutor(Parallelism):
     def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed):
         super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed)
         self.name = "DDPExecutor"
-        # logging = CerebroLogger("worker-{}".format(worker_id))
-        # self.logger = logging.create_logger("ddp-worker")
+        logging = CerebroLogger("worker-{}".format(worker_id))
+        self.logger = logging.create_logger("ddp-worker")
 
         self.mode = None
         self.seed = seed
@@ -205,10 +205,15 @@ class DDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
-    def _execute_hmm(self, rank, user_train_func_str, user_metrics_func_str):
-        print("Yaayyy", user_train_func_str)
+    def _execute_hmm(self, rank):
+        print("Yaayyy")
         setup(rank, self.world_size)
-        print("done", user_metrics_func_str)
+
+        from cerebro.util.coalesce_dataset import CoalesceDataset
+        train_data_path = os.path.join("/data_storage_worker/1/post_etl/train/train_data1.pkl")
+        dataset = CoalesceDataset(train_data_path)
+
+        print("done")
 
     def execute_sample(self, minibatch_spec, dataset):
         # set values
@@ -228,7 +233,7 @@ class DDPExecutor(Parallelism):
 
         # spawn DDP workers
         # mp.spawn(self._execute_inner, args=(dataset, user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
-        mp.spawn(self._execute_hmm, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        mp.spawn(self._execute_hmm, args=(dataset,), nprocs=self.world_size, join=True)
 
     def execute_val(self, minibatch_spec, dataset, model_id):
         # get val and metrics_agg functions
