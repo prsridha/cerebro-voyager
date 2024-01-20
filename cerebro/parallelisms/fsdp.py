@@ -210,9 +210,11 @@ class FSDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
-    def execute_sample(self, user_train_func, dataset):
+    def execute_sample(self, dataset):
         # set values
         self.mode = "sample"
+        spec = self.kvs.mop_get_spec()
+        user_train_func = spec.train
         user_train_func_str = base64.b64encode(dill.dumps(user_train_func))
 
         # spawn FSDP workers

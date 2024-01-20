@@ -11,7 +11,7 @@ class Parallelism:
     def save_checkpoint(self, model_object):
         pass
 
-    def execute_sample(self, user_train_func, dataset):
+    def execute_sample(self, dataset):
         pass
 
     def execute_train(self, dataset, model_id):

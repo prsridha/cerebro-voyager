@@ -440,7 +440,7 @@ class MOPController:
         self.create_model_components()
 
         # skipping Sampling as only DDP is enabled
-        print("Running parallelism sampling...")
+        # print("Running parallelism sampling...")
         self.sampler()
 
         print("\n")
