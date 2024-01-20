@@ -41,7 +41,7 @@ def clean_up():
 
 class DDPExecutor(Parallelism):
     def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed):
-        super().__init__(worker_id, model_config, model_checkpoint_path, epoch)
+        super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed)
         self.name = "DDPExecutor"
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("ddp-worker")
@@ -201,7 +201,7 @@ class DDPExecutor(Parallelism):
     def execute_sample(self, minibatch_spec, dataset):
         # set values
         self.mode = "sample"
-        user_train_func_str = base64.b64encode(dill.dumps(minibatch_spec_fn))
+        user_train_func_str = base64.b64encode(dill.dumps(minibatch_spec))
 
         # spawn DDP workers
         mp.spawn(self._execute_inner, args=(dataset, user_train_func_str), nprocs=self.world_size, join=True)

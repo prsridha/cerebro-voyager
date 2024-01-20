@@ -28,10 +28,11 @@ class CerebroWorker:
         self.logger = logging.create_logger("mop-worker")
         self.logger.info("Starting MOP worker {}".format(worker_id))
 
-        self.minibatch_spec = None
         self.params = None
+        self.minibatch_spec = None
         self.worker_id = worker_id
         self.kvs = KeyValueStore()
+        self.seed = self.kvs.get_seed()
 
         # load values from cerebro-info configmap
         namespace = os.environ['NAMESPACE']
@@ -66,16 +67,13 @@ class CerebroWorker:
         self.logger.info(
             "Sampling model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
 
-        # obtain seed value
-        seed = self.kvs.get_seed()
-
         # obtain paths
         sample_data_path = os.path.join(self.params.etl["train"]["output_path"], "train_data{}.pkl".format(self.worker_id))
 
         # sample 'sample_size' percent of examples from the dataset
         dataset = CoalesceDataset(sample_data_path)
         num_samples = int(len(dataset) * self.sample_size)
-        sampled_indices = random.Random(seed).sample(range(len(dataset)), num_samples)
+        sampled_indices = random.Random(self.seed).sample(range(len(dataset)), num_samples)
         sampled_dataset = Subset(dataset, sampled_indices)
 
         # get model hyperparameters
@@ -85,7 +83,7 @@ class CerebroWorker:
         ParallelismExecutor = get_parallelism_executor(parallelism_name)
         model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(model_id))
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
 
         self.logger.info("Created parallelism object")
 
@@ -117,7 +115,7 @@ class CerebroWorker:
         model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(model_id))
         model_config = self.kvs.mop_get_model_mapping(model_id)
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, epoch)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, epoch, self.seed)
 
         # call the train function
         parallelism.execute_train(self.minibatch_spec, dataset, model_id)
@@ -165,7 +163,7 @@ class CerebroWorker:
 
         # create parallelism object
         model_config = {"batch_size": batch_size}
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
 
         # run test via parallelism
         output_path = os.path.join(self.params.mop["test_output_path"])
