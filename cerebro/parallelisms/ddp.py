@@ -17,7 +17,7 @@ import habana_frameworks.torch.hpu as hthpu
 import habana_frameworks.torch.core as htcore
 import habana_frameworks.torch.distributed.hccl
 
-# from cerebro.util.params import Params
+from cerebro.util.params import Params
 from cerebro.util.save_metrics import SaveMetrics
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.parallelisms.parallelism_spec import Parallelism
@@ -56,9 +56,8 @@ class DDPExecutor(Parallelism):
         self.model_path = model_checkpoint_path
 
         # get output path
-        # params = Params()
-        # self.output_path = params.mop["predict_output_path"]
-        self.output_path = "/data/data_storage/prediction_output"
+        params = Params()
+        self.output_path = params.mop["predict_output_path"]
 
         # create state dict path
         self.state_dict_path = os.path.join(os.path.dirname(self.model_path), "state_dicts")
@@ -206,6 +205,11 @@ class DDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
+    def _execute_hmm(self, rank, abcd):
+        print("Yaayyy", abcd)
+        setup(rank, self.world_size)
+        print("done", abcd)
+
     def execute_sample(self, minibatch_spec, dataset):
         # set values
         self.mode = "sample"
@@ -223,7 +227,8 @@ class DDPExecutor(Parallelism):
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
-        mp.spawn(self._execute_inner, args=(dataset, user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        # mp.spawn(self._execute_inner, args=(dataset, user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        mp.spawn(self._execute_hmm, args=("abcd",), nprocs=self.world_size, join=True)
 
     def execute_val(self, minibatch_spec, dataset, model_id):
         # get val and metrics_agg functions
