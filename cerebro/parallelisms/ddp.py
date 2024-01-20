@@ -205,8 +205,8 @@ class DDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
-    def _execute_hmm(self, rank):
-        print("Yaayyy")
+    def _execute_hmm(self, rank, abcd):
+        print("Yaayyy", abcd)
         setup(rank, self.world_size)
 
         from cerebro.util.coalesce_dataset import CoalesceDataset
@@ -233,7 +233,7 @@ class DDPExecutor(Parallelism):
 
         # spawn DDP workers
         # mp.spawn(self._execute_inner, args=(dataset, user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
-        mp.spawn(self._execute_hmm, args=(dataset,), nprocs=self.world_size, join=True)
+        mp.spawn(self._execute_hmm, args=("abcd", ), nprocs=self.world_size, join=True)
 
     def execute_val(self, minibatch_spec, dataset, model_id):
         # get val and metrics_agg functions
