@@ -124,27 +124,32 @@ class DDPExecutor(Parallelism):
 
     def _execute_inner(self, rank, dataset, user_func_str, user_metrics_func_str=None):
         # load user_func from serialized str
+        print("Okay till here 1")
         user_func = dill.loads(base64.b64decode(user_func_str))
         user_metrics_func = dill.loads(base64.b64decode(user_metrics_func_str)) if user_metrics_func_str else None
 
+        print("Okay till here 2")
         # initialize process with this rank
         setup(rank, self.world_size)
 
+        print("Okay till here 3")
         # create data sampler and dataloader
         sampler = DistributedSampler(dataset, rank=rank, num_replicas=self.world_size, shuffle=False, seed=self.seed)
         dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False)
 
+        print("Okay till here 4")
         # load models and their state dicts
         model_object = torch.load(self.model_path)
         updated_obj = self.load_checkpoint(model_object)
 
+        print("Okay till here 5")
         # parallelize models from model object file
         for obj_name, obj in updated_obj.items():
             if obj_name != "optimizer":
                 obj.to(device)
                 p_model = DDP(obj)
                 updated_obj[obj_name] = p_model
-
+        print("Okay till here 6")
         # call user's ML function
         if self.mode == "sample":
             for k, minibatch in enumerate(dataloader):
