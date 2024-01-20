@@ -17,7 +17,7 @@ import habana_frameworks.torch.hpu as hthpu
 import habana_frameworks.torch.core as htcore
 import habana_frameworks.torch.distributed.hccl
 
-from cerebro.util.params import Params
+# from cerebro.util.params import Params
 from cerebro.util.save_metrics import SaveMetrics
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.parallelisms.parallelism_spec import Parallelism
@@ -43,8 +43,8 @@ class DDPExecutor(Parallelism):
     def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed):
         super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed)
         self.name = "DDPExecutor"
-        logging = CerebroLogger("worker-{}".format(worker_id))
-        self.logger = logging.create_logger("ddp-worker")
+        # logging = CerebroLogger("worker-{}".format(worker_id))
+        # self.logger = logging.create_logger("ddp-worker")
 
         self.mode = None
         self.seed = seed
@@ -56,8 +56,9 @@ class DDPExecutor(Parallelism):
         self.model_path = model_checkpoint_path
 
         # get output path
-        params = Params()
-        self.output_path = params.mop["predict_output_path"]
+        # params = Params()
+        # self.output_path = params.mop["predict_output_path"]
+        self.output_path = "/data/data_storage/prediction_output"
 
         # create state dict path
         self.state_dict_path = os.path.join(os.path.dirname(self.model_path), "state_dicts")
