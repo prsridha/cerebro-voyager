@@ -329,11 +329,12 @@ class ETLController:
                 self.process_task(kvs_constants.ETL_TASK_SAVE_PROCESSED, "predict")
 
             # update ownership of etl_dir from root to user
-            uid, gid = self.user_ids
-            ownership_cmd = "chown -R {uid}:{gid} {dir_path}".format(
-                uid=uid, gid=gid, dir_path=self.params.etl["etl_dir"]
-            )
-            os.system(ownership_cmd)
+            if etl_dir_present:
+                uid, gid = self.user_ids
+                ownership_cmd = "chown -R {uid}:{gid} {dir_path}".format(
+                    uid=uid, gid=gid, dir_path=self.params.etl["etl_dir"]
+                )
+                os.system(ownership_cmd)
 
     def exit_etl(self):
         # idle all ETL Workers
