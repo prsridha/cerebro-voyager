@@ -63,37 +63,37 @@ class DDPExecutor(Parallelism):
         self.state_dict_path = os.path.join(os.path.dirname(self.model_path), "state_dicts")
         Path(self.state_dict_path).mkdir(parents=True, exist_ok=True)
 
-    # def save_local_metrics(self, rank, metrics_list, user_metrics_func):
-    #     # group-by on key
-    #     df = pd.DataFrame(metrics_list)
-    #     grouped_metrics = df.to_dict(orient='list')
-    #
-    #     # convert to tensors
-    #     for key in grouped_metrics:
-    #         grouped_metrics[key] = torch.tensor(grouped_metrics[key]).to(device)
-    #
-    #     # all-reduce
-    #     for key, tensor in grouped_metrics.items():
-    #         dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
-    #
-    #     # get average
-    #     for key in grouped_metrics:
-    #         grouped_metrics[key] /= self.world_size
-    #     reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
-    #
-    #     if rank == 0:
-    #         # plot only train and val metrics on tensorboard
-    #         if self.mode == "train":
-    #             SaveMetrics.save_to_tensorboard(reduced_metrics, self.mode, self.model_id, self.epoch)
-    #             SaveMetrics.save_to_file(reduced_metrics, self.mode, "{}.csv".format(self.model_id))
-    #         elif self.mode == "val":
-    #             result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
-    #             SaveMetrics.save_to_tensorboard(result, self.mode, self.model_id, self.epoch)
-    #         elif self.mode == "test":
-    #             # run through user's metrics aggregator
-    #             result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
-    #             output_filename = "test_output_{}.csv".format(self.model_id)
-    #             SaveMetrics.save_to_file(result, self.mode, output_filename)
+    def save_local_metrics(self, rank, metrics_list, user_metrics_func):
+        # group-by on key
+        df = pd.DataFrame(metrics_list)
+        grouped_metrics = df.to_dict(orient='list')
+
+        # convert to tensors
+        for key in grouped_metrics:
+            grouped_metrics[key] = torch.tensor(grouped_metrics[key]).to(device)
+
+        # all-reduce
+        for key, tensor in grouped_metrics.items():
+            dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+
+        # get average
+        for key in grouped_metrics:
+            grouped_metrics[key] /= self.world_size
+        reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
+
+        if rank == 0:
+            # plot only train and val metrics on tensorboard
+            if self.mode == "train":
+                SaveMetrics.save_to_tensorboard(reduced_metrics, self.mode, self.model_id, self.epoch)
+                SaveMetrics.save_to_file(reduced_metrics, self.mode, "{}.csv".format(self.model_id))
+            elif self.mode == "val":
+                result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
+                SaveMetrics.save_to_tensorboard(result, self.mode, self.model_id, self.epoch)
+            elif self.mode == "test":
+                # run through user's metrics aggregator
+                result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
+                output_filename = "test_output_{}.csv".format(self.model_id)
+                SaveMetrics.save_to_file(result, self.mode, output_filename)
 
     def load_checkpoint(self, model_object):
         # check if checkpoints exist
@@ -155,7 +155,7 @@ class DDPExecutor(Parallelism):
             for k, minibatch in enumerate(dataloader):
                 updated_obj, metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
                 minibatch_metrics.append(metrics)
-            # self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
+            self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
 
             # save checkpoint of uploaded model object
             self.save_checkpoint(updated_obj)
@@ -166,7 +166,7 @@ class DDPExecutor(Parallelism):
                 metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
                 minibatch_metrics.append(metrics)
 
-            # self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
+            self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
 
         elif self.mode == "test":
             test_outputs = []
@@ -174,7 +174,7 @@ class DDPExecutor(Parallelism):
                 output = user_func(updated_obj, minibatch, self.hyperparams, device)
                 test_outputs.append(output)
 
-            # self.save_local_metrics(rank, test_outputs, user_metrics_func)
+            self.save_local_metrics(rank, test_outputs, user_metrics_func)
 
         elif self.mode == "predict":
             predict_outputs = []
