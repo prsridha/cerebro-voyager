@@ -7,7 +7,6 @@ import pandas as pd
 from pathlib import Path
 
 import torch
-import pandas as pd
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
@@ -20,7 +19,6 @@ import habana_frameworks.torch.distributed.hccl
 
 from cerebro.util.params import Params
 from cerebro.util.save_metrics import SaveMetrics
-from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.parallelisms.parallelism_spec import Parallelism
 
@@ -42,13 +40,14 @@ def clean_up():
 
 
 class DDPExecutor(Parallelism):
-    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch):
+    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed):
         super().__init__(worker_id, model_config, model_checkpoint_path, epoch)
         self.name = "DDPExecutor"
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("ddp-worker")
 
         self.mode = None
+        self.seed = seed
         self.epoch = epoch
         self.model_id = None
         self.worker_id = worker_id
@@ -59,11 +58,6 @@ class DDPExecutor(Parallelism):
         # get output path
         params = Params()
         self.output_path = params.mop["predict_output_path"]
-
-        # get KVS values - seed and user's spec function
-        kvs = KeyValueStore()
-        self.seed = kvs.get_seed()
-        self.spec = kvs.mop_get_spec()
 
         # create state dict path
         self.state_dict_path = os.path.join(os.path.dirname(self.model_path), "state_dicts")
@@ -190,7 +184,7 @@ class DDPExecutor(Parallelism):
                 predict_outputs.append(output)
 
             if rank == 0:
-                output_filename = os.path.join(self.params.mop["predict_output_path"], "predict_output_{}.csv".format(self.model_id))
+                output_filename = os.path.join(self.output_path, "predict_output_{}.csv".format(self.model_id))
                 output_df = pd.DataFrame(predict_outputs)
                 output_df.to_csv(output_filename)
 
@@ -204,51 +198,50 @@ class DDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
-    def execute_sample(self, dataset):
+    def execute_sample(self, minibatch_spec, dataset):
         # set values
         self.mode = "sample"
-        user_train_func = self.spec.train
-        user_train_func_str = base64.b64encode(dill.dumps(user_train_func))
+        user_train_func_str = base64.b64encode(dill.dumps(minibatch_spec_fn))
 
         # spawn DDP workers
         mp.spawn(self._execute_inner, args=(dataset, user_train_func_str), nprocs=self.world_size, join=True)
 
-    def execute_train(self, dataset, model_id):
+    def execute_train(self, minibatch_spec, dataset, model_id):
         # get train and metrics_agg functions
         self.mode = "train"
         self.model_id = model_id
-        user_train_func, user_metrics_func = self.spec.train, self.spec.metrics_agg
+        user_train_func, user_metrics_func = minibatch_spec.train, minibatch_spec.metrics_agg
         user_train_func_str = base64.b64encode(dill.dumps(user_train_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
         mp.spawn(self._execute_inner, args=(dataset, user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
-    def execute_val(self, dataset, model_id):
+    def execute_val(self, minibatch_spec, dataset, model_id):
         # get val and metrics_agg functions
         self.mode = "val"
         self.model_id = model_id
-        user_val_func, user_metrics_func = self.spec.valtest, self.spec.metrics_agg
+        user_val_func, user_metrics_func = minibatch_spec.valtest, minibatch_spec.metrics_agg
         user_val_func_str = base64.b64encode(dill.dumps(user_val_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
         mp.spawn(self._execute_inner, args=(dataset, user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
-    def execute_test(self, dataset):
+    def execute_test(self, minibatch_spec, dataset):
         # get val and metrics_agg functions
         self.mode = "test"
-        user_test_func, user_metrics_func = self.spec.valtest, self.spec.metrics_agg
+        user_test_func, user_metrics_func = minibatch_spec.valtest, minibatch_spec.metrics_agg
         user_test_func_str = base64.b64encode(dill.dumps(user_test_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
         mp.spawn(self._execute_inner, args=(dataset, user_test_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
-    def execute_predict(self, dataset):
+    def execute_predict(self, minibatch_spec, dataset):
         # get predict function
         self.mode = "predict"
-        user_pred_func = self.spec.predict
+        user_pred_func = minibatch_spec.predict
         user_pred_func_str = base64.b64encode(dill.dumps(user_pred_func))
 
         # spawn DDP workers

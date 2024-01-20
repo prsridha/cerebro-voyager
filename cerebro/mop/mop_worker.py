@@ -28,8 +28,8 @@ class CerebroWorker:
         self.logger = logging.create_logger("mop-worker")
         self.logger.info("Starting MOP worker {}".format(worker_id))
 
+        self.minibatch_spec = None
         self.params = None
-        self.sub_epoch_spec = None
         self.worker_id = worker_id
         self.kvs = KeyValueStore()
 
@@ -58,8 +58,8 @@ class CerebroWorker:
 
         # read subepoch spec and call initialize worker
         self.logger.info("Initializing worker packages")
-        self.sub_epoch_spec = self.kvs.mop_get_spec()
-        self.sub_epoch_spec.initialize_worker()
+        self.minibatch_spec = self.kvs.mop_get_spec()
+        self.minibatch_spec.initialize_worker()
         self.logger.info("Subepoch init worker called")
 
     def sample_parallelism(self, model_id, parallelism_name):
@@ -91,7 +91,7 @@ class CerebroWorker:
 
         # call the train function
         start = time.time()
-        parallelism.execute_sample(self.sub_epoch_spec.train, sampled_dataset)
+        parallelism.execute_sample(self.minibatch_spec, sampled_dataset)
         end = time.time()
 
         time_elapsed = end - start
@@ -120,14 +120,14 @@ class CerebroWorker:
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, epoch)
 
         # call the train function
-        parallelism.execute_train(dataset, model_id)
+        parallelism.execute_train(self.minibatch_spec, dataset, model_id)
 
         if is_last_worker:
             # aggregate and plot train epoch metrics
             csv_path = os.path.join(self.params.mop["metrics_storage_path"]["user_metrics"], "train",
                                     "{}.csv".format(model_id))
             metrics_df = pd.read_csv(csv_path)
-            reduced_df = self.sub_epoch_spec.metrics_agg("train", model_config, metrics_df)
+            reduced_df = self.minibatch_spec.metrics_agg("train", model_config, metrics_df)
             SaveMetrics.save_to_tensorboard(reduced_df, "train_epoch", model_id, epoch)
 
             # run validation
@@ -144,7 +144,7 @@ class CerebroWorker:
         dataset = CoalesceDataset(val_data_path)
 
         # run validation via parallelism
-        parallelism.execute_val(dataset, model_id)
+        parallelism.execute_val(self.minibatch_spec, dataset, model_id)
 
     def test_model(self, model_tag, batch_size):
         # create dataset object
@@ -170,7 +170,7 @@ class CerebroWorker:
         # run test via parallelism
         output_path = os.path.join(self.params.mop["test_output_path"])
         Path(os.path.dirname(output_path)).mkdir(exist_ok=True)
-        parallelism.execute_test(dataset)
+        parallelism.execute_test(self.minibatch_spec, dataset)
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)

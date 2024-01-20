@@ -1,5 +1,5 @@
 class Parallelism:
-    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch):
+    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed):
         pass
 
     def save_local_metrics(self, rank, metrics, user_metrics_func):
@@ -11,17 +11,17 @@ class Parallelism:
     def save_checkpoint(self, model_object):
         pass
 
-    def execute_sample(self, dataset):
+    def execute_sample(self, minibatch_spec, dataset):
         pass
 
-    def execute_train(self, dataset, model_id):
+    def execute_train(self, minibatch_spec, dataset, model_id):
         pass
 
-    def execute_val(self, dataset, model_id):
+    def execute_val(self, minibatch_spec, dataset, model_id):
         pass
 
-    def execute_test(self, dataset):
+    def execute_test(self, minibatch_spec, dataset):
         pass
 
-    def execute_predict(self, dataset):
+    def execute_predict(self, minibatch_spec, dataset):
         pass
