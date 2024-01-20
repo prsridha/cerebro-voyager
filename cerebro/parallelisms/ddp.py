@@ -3,8 +3,8 @@ import gc
 import dill
 import base64
 import warnings
+import pandas as pd
 from pathlib import Path
-from collections import defaultdict
 
 import torch
 import pandas as pd
@@ -14,19 +14,27 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+import habana_frameworks.torch.hpu as hthpu
+import habana_frameworks.torch.core as htcore
+import habana_frameworks.torch.distributed.hccl
+
 from cerebro.util.params import Params
 from cerebro.util.save_metrics import SaveMetrics
 from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.parallelisms.parallelism_spec import Parallelism
 
+# initialize device to Habana HPU
+device = torch.device('hpu')
+
 def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ["ID"] = str(rank)
     os.environ['MASTER_PORT'] = '12355'
+    os.environ['MASTER_ADDR'] = 'localhost'
     warnings.filterwarnings("ignore")
 
     # initialize the process group
-    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    dist.init_process_group(backend='hccl', rank=rank, world_size=world_size)
 
 
 def clean_up():
@@ -48,32 +56,32 @@ class DDPExecutor(Parallelism):
         self.kvs = KeyValueStore()
         self.seed = self.kvs.get_seed()
         self.hyperparams = model_config
+        self.world_size = hthpu.device_count()
         self.model_path = model_checkpoint_path
-        self.world_size = torch.cuda.device_count()
 
         # create state dict path
         self.state_dict_path = os.path.join(os.path.dirname(self.model_path), "state_dicts")
         Path(self.state_dict_path).mkdir(parents=True, exist_ok=True)
 
-    def save_local_metrics(self, rank, metrics, user_metrics_func):
-        grouped_metrics = defaultdict(list)
-
+    def save_local_metrics(self, rank, metrics_list, user_metrics_func):
         # group-by on key
-        for item in metrics:
-            for k, v in item.items():
-                grouped_metrics[k].append(v)
+        df = pd.DataFrame(metrics_list)
+        grouped_metrics = df.to_dict(orient='list')
 
-        # convert to tensors and move to appropriate rank
-        for k in grouped_metrics:
-            grouped_metrics[k] = torch.Tensor(grouped_metrics[k]).to(rank)
-        grouped_metrics_list = torch.stack(list(grouped_metrics.values())).to(rank)
+        # convert to tensors
+        for key in grouped_metrics:
+            grouped_metrics[key] = torch.tensor(grouped_metrics[key]).to(device)
 
-        # reduce across ranks to get mean
-        dist.all_reduce(grouped_metrics_list, op=dist.ReduceOp.AVG)
+        # all-reduce
+        for key, tensor in grouped_metrics.items():
+            dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+
+        # get average
+        for key in grouped_metrics:
+            grouped_metrics[key] /= self.world_size
+        reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
+
         if rank == 0:
-            # remove extra list layer and repack into dict
-            reduced_metrics = dict(zip(grouped_metrics.keys(), map(lambda x: x.tolist(), grouped_metrics_list)))
-
             # plot only train and val metrics on tensorboard
             if self.mode == "train":
                 SaveMetrics.save_to_tensorboard(reduced_metrics, self.mode, self.model_id, self.epoch)
@@ -93,14 +101,11 @@ class DDPExecutor(Parallelism):
             return model_object
 
         new_model_object = {}
-        rank = dist.get_rank()
-        map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
-
         for obj_name, obj in model_object.items():
             state_dict_file_path = os.path.join(self.state_dict_path, obj_name + ".pt")
-            model_checkpoint = torch.load(state_dict_file_path, map_location=map_location)
+            model_checkpoint = torch.load(state_dict_file_path)
             if obj_name != "optimizer":
-                obj.to(rank)
+                obj.to(device)
             obj.load_state_dict(model_checkpoint)
             new_model_object[obj_name] = obj
 
@@ -117,23 +122,17 @@ class DDPExecutor(Parallelism):
                 else:
                     torch.save(obj.module.state_dict(), state_dict_file_path)
 
-    def _execute_inner(self, rank, user_func_str, dataset, user_metrics_func_str=None):
-        # empty GPU cache
-        torch.cuda.empty_cache()
-
+    def _execute_inner(self, rank, dataset, user_func_str, user_metrics_func_str=None):
         # load user_func from serialized str
         user_func = dill.loads(base64.b64decode(user_func_str))
         user_metrics_func = dill.loads(base64.b64decode(user_metrics_func_str)) if user_metrics_func_str else None
 
         # initialize process with this rank
         setup(rank, self.world_size)
-        torch.cuda.set_device(rank)
-        current_device = torch.cuda.current_device()
 
         # create data sampler and dataloader
         sampler = DistributedSampler(dataset, rank=rank, num_replicas=self.world_size, shuffle=False, seed=self.seed)
-        dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, pin_memory=True,
-                                num_workers=2, shuffle=False)
+        dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False)
 
         # load models and their state dicts
         model_object = torch.load(self.model_path)
@@ -142,35 +141,37 @@ class DDPExecutor(Parallelism):
         # parallelize models from model object file
         for obj_name, obj in updated_obj.items():
             if obj_name != "optimizer":
-                obj.to(rank)
-                p_model = DDP(obj, device_ids=[rank])
+                obj.to(device)
+                p_model = DDP(obj)
                 updated_obj[obj_name] = p_model
 
         # call user's ML function
         if self.mode == "sample":
             for k, minibatch in enumerate(dataloader):
-                user_func(updated_obj, minibatch, self.hyperparams, current_device)
+                user_func(updated_obj, minibatch, self.hyperparams, device)
 
         elif self.mode == "train":
+            minibatch_metrics = []
             for k, minibatch in enumerate(dataloader):
-                updated_obj, minibatch_metrics = user_func(updated_obj, minibatch, self.hyperparams, current_device)
-                self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
+                updated_obj, metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
+                minibatch_metrics.append(metrics)
+            self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
 
             # save checkpoint of uploaded model object
             self.save_checkpoint(updated_obj)
 
         elif self.mode == "val":
-            val_metrics = []
+            minibatch_metrics = []
             for k, minibatch in dataloader:
-                minibatch_metrics = user_func(updated_obj, minibatch, self.hyperparams, current_device)
-                val_metrics.append(minibatch_metrics)
+                metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
+                minibatch_metrics.append(metrics)
 
-            self.save_local_metrics(rank, val_metrics, user_metrics_func)
+            self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
 
         elif self.mode == "test":
             test_outputs = []
             for k, minibatch in dataloader:
-                output = user_func(updated_obj, minibatch, self.hyperparams, current_device)
+                output = user_func(updated_obj, minibatch, self.hyperparams, device)
                 test_outputs.append(output)
 
             self.save_local_metrics(rank, test_outputs, user_metrics_func)
@@ -178,7 +179,7 @@ class DDPExecutor(Parallelism):
         elif self.mode == "predict":
             predict_outputs = []
             for k, minibatch in dataloader:
-                output = user_func(updated_obj, minibatch, self.hyperparams, current_device)
+                output = user_func(updated_obj, minibatch, self.hyperparams, device)
                 output["row_id"] = minibatch[3]
                 predict_outputs.append(output)
 
@@ -199,11 +200,11 @@ class DDPExecutor(Parallelism):
 
     def execute_sample(self, user_train_func, dataset):
         # set values
-        mode = "sample"
+        self.mode = "sample"
         user_train_func_str = base64.b64encode(dill.dumps(user_train_func))
 
         # spawn DDP workers
-        mp.spawn(self._execute_inner, args=(mode, user_train_func_str, dataset), nprocs=self.world_size, join=True)
+        mp.spawn(self._execute_inner, args=(dataset, user_train_func_str), nprocs=self.world_size, join=True)
 
     def execute_train(self, dataset, model_id):
         # get train and metrics_agg functions
@@ -215,7 +216,7 @@ class DDPExecutor(Parallelism):
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
-        mp.spawn(self._execute_inner, args=(user_train_func_str, dataset, user_metrics_func_str), nprocs=self.world_size, join=True)
+        mp.spawn(self._execute_inner, args=(dataset, user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
     def execute_val(self, dataset, model_id):
         # get val and metrics_agg functions
@@ -227,7 +228,7 @@ class DDPExecutor(Parallelism):
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
-        mp.spawn(self._execute_inner, args=(user_val_func_str, dataset, user_metrics_func_str), nprocs=self.world_size, join=True)
+        mp.spawn(self._execute_inner, args=(dataset, user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
     def execute_test(self, dataset):
         # get val and metrics_agg functions
@@ -235,16 +236,17 @@ class DDPExecutor(Parallelism):
         spec = self.kvs.mop_get_spec()
         user_test_func, user_metrics_func = spec.valtest, spec.metrics_agg
         user_test_func_str = base64.b64encode(dill.dumps(user_test_func))
+        user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
-        mp.spawn(self._execute_inner, args=(user_test_func_str, dataset, user_metrics_func), nprocs=self.world_size, join=True)
+        mp.spawn(self._execute_inner, args=(dataset, user_test_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
     def execute_predict(self, dataset):
-        # get val and metrics_agg functions
+        # get predict function
         self.mode = "predict"
         spec = self.kvs.mop_get_spec()
         user_pred_func = spec.predict
         user_pred_func_str = base64.b64encode(dill.dumps(user_pred_func))
 
         # spawn DDP workers
-        mp.spawn(self._execute_inner, args=(user_pred_func_str, dataset), nprocs=self.world_size, join=True)
+        mp.spawn(self._execute_inner, args=(dataset, user_pred_func_str), nprocs=self.world_size, join=True)

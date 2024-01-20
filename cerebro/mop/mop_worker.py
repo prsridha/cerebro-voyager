@@ -159,8 +159,8 @@ class CerebroWorker:
             model_tag_dir = model_tag.split(".")[0]
             model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], model_tag_dir, model_tag)
 
-        # default parallelism to FSDP
-        p_name = "FSDP"
+        # default parallelism to DDP
+        p_name = "DDP"
         ParallelismExecutor = get_parallelism_executor(p_name)
 
         # create parallelism object

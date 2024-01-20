@@ -192,6 +192,12 @@ class MOPController:
             self.logger.info("Created model components for model {}".format(model_id))
 
     def sampler(self):
+        # skipping Sampling since only DDP is enabled
+        best_parallelism = "DDP"
+        for m in range(self.num_models):
+            self.kvs.mop_set_parallelism_mapping(m, best_parallelism)
+        return
+
         mpls = set()
         mpl_on_worker = {}
         n_workers = self.num_workers
@@ -433,7 +439,7 @@ class MOPController:
         print("Creating models...")
         self.create_model_components()
 
-        # run makespan sampling
+        # skipping Sampling as only DDP is enabled
         print("Running parallelism sampling...")
         self.sampler()
 
