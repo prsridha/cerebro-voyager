@@ -51,13 +51,19 @@ class DDPExecutor(Parallelism):
         self.mode = None
         self.epoch = epoch
         self.model_id = None
-        self.params = Params()
         self.worker_id = worker_id
-        self.kvs = KeyValueStore()
-        self.seed = self.kvs.get_seed()
         self.hyperparams = model_config
         self.world_size = hthpu.device_count()
         self.model_path = model_checkpoint_path
+
+        # get output path
+        params = Params()
+        self.output_path = params.mop["predict_output_path"]
+
+        # get KVS values - seed and user's spec function
+        kvs = KeyValueStore()
+        self.seed = kvs.get_seed()
+        self.spec = kvs.mop_get_spec()
 
         # create state dict path
         self.state_dict_path = os.path.join(os.path.dirname(self.model_path), "state_dicts")
@@ -198,9 +204,10 @@ class DDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
-    def execute_sample(self, user_train_func, dataset):
+    def execute_sample(self, dataset):
         # set values
         self.mode = "sample"
+        user_train_func = self.spec.train
         user_train_func_str = base64.b64encode(dill.dumps(user_train_func))
 
         # spawn DDP workers
@@ -210,8 +217,7 @@ class DDPExecutor(Parallelism):
         # get train and metrics_agg functions
         self.mode = "train"
         self.model_id = model_id
-        spec = self.kvs.mop_get_spec()
-        user_train_func, user_metrics_func = spec.train, spec.metrics_agg
+        user_train_func, user_metrics_func = self.spec.train, self.spec.metrics_agg
         user_train_func_str = base64.b64encode(dill.dumps(user_train_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
@@ -222,8 +228,7 @@ class DDPExecutor(Parallelism):
         # get val and metrics_agg functions
         self.mode = "val"
         self.model_id = model_id
-        spec = self.kvs.mop_get_spec()
-        user_val_func, user_metrics_func = spec.valtest, spec.metrics_agg
+        user_val_func, user_metrics_func = self.spec.valtest, self.spec.metrics_agg
         user_val_func_str = base64.b64encode(dill.dumps(user_val_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
@@ -233,8 +238,7 @@ class DDPExecutor(Parallelism):
     def execute_test(self, dataset):
         # get val and metrics_agg functions
         self.mode = "test"
-        spec = self.kvs.mop_get_spec()
-        user_test_func, user_metrics_func = spec.valtest, spec.metrics_agg
+        user_test_func, user_metrics_func = self.spec.valtest, self.spec.metrics_agg
         user_test_func_str = base64.b64encode(dill.dumps(user_test_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
@@ -244,8 +248,7 @@ class DDPExecutor(Parallelism):
     def execute_predict(self, dataset):
         # get predict function
         self.mode = "predict"
-        spec = self.kvs.mop_get_spec()
-        user_pred_func = spec.predict
+        user_pred_func = self.spec.predict
         user_pred_func_str = base64.b64encode(dill.dumps(user_pred_func))
 
         # spawn DDP workers
