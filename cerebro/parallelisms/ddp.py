@@ -135,7 +135,7 @@ class DDPExecutor(Parallelism):
         print("Okay till here 3")
         # create data sampler and dataloader
         sampler = DistributedSampler(dataset, rank=rank, num_replicas=self.world_size, shuffle=False, seed=self.seed)
-        dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False)
+        dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False, num_workers=0)
 
         print("Okay till here 4")
         # load models and their state dicts
