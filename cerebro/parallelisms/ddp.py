@@ -2,6 +2,7 @@ import os
 import gc
 import dill
 import base64
+import random
 import warnings
 import pandas as pd
 from pathlib import Path
@@ -9,7 +10,9 @@ from pathlib import Path
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from torch.utils.data import Subset
 from torch.utils.data import DataLoader
+from cerebro.util.coalesce_dataset import CoalesceDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 
@@ -40,8 +43,8 @@ def clean_up():
 
 
 class DDPExecutor(Parallelism):
-    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed):
-        super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed)
+    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size=None):
+        super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size)
         self.name = "DDPExecutor"
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("ddp-worker")
@@ -51,13 +54,21 @@ class DDPExecutor(Parallelism):
         self.epoch = epoch
         self.model_id = None
         self.worker_id = worker_id
+        self.sample_size = sample_size
         self.hyperparams = model_config
         self.world_size = hthpu.device_count()
         self.model_path = model_checkpoint_path
 
         # get output path
         params = Params()
-        self.output_path = params.mop["predict_output_path"]
+        self.etl_output_path = {
+            "sample": os.path.join(params.etl["train"]["output_path"], "train_data{}.pkl".format(self.worker_id)),
+            "train": os.path.join(params.etl["train"]["output_path"], "train_data{}.pkl".format(self.worker_id)),
+            "val": os.path.join(params.etl["val"]["output_path"], "val_data.pkl"),
+            "test": os.path.join(params.etl["test"]["output_path"], "test_data{}.pkl".format(self.worker_id)),
+            "predict": os.path.join(params.etl["predict"]["output_path"], "predict_data{}.pkl".format(self.worker_id))
+        }
+        self.predict_output_path = params.mop["predict_output_path"]
 
         # create state dict path
         self.state_dict_path = os.path.join(os.path.dirname(self.model_path), "state_dicts")
@@ -133,11 +144,18 @@ class DDPExecutor(Parallelism):
         user_func = dill.loads(base64.b64decode(user_func_str))
         user_metrics_func = dill.loads(base64.b64decode(user_metrics_func_str)) if user_metrics_func_str else None
 
-
         print("Okay till here 3")
-        # create data sampler and dataloader
+        # get dataset
+        data_path = self.etl_output_path[self.mode]
+        dataset = CoalesceDataset(data_path)
+        if self.mode == "sample":
+            num_samples = int(len(dataset) * self.sample_size)
+            sampled_indices = random.Random(self.seed).sample(range(len(dataset)), num_samples)
+            dataset = Subset(dataset, sampled_indices)
+
+        # create data sampler and loader
         sampler = DistributedSampler(dataset, rank=rank, num_replicas=self.world_size, shuffle=False, seed=self.seed)
-        dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False, num_workers=0)
+        dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False)
 
         print("Okay till here 4")
         # load models and their state dicts
@@ -209,9 +227,8 @@ class DDPExecutor(Parallelism):
         print("Yaayyy", abcd)
         setup(rank, self.world_size)
 
-        from cerebro.util.coalesce_dataset import CoalesceDataset
-        train_data_path = os.path.join("/data_storage_worker/1/post_etl/train/train_data1.pkl")
-        dataset = CoalesceDataset(train_data_path)
+        sampler = DistributedSampler(self.dataset, rank=rank, num_replicas=self.world_size, shuffle=False, seed=self.seed)
+        dataloader = DataLoader(self.dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False)
 
         print("done")
 
@@ -232,6 +249,7 @@ class DDPExecutor(Parallelism):
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
+        self.dataset = dataset
         # mp.spawn(self._execute_inner, args=(dataset, user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
         mp.spawn(self._execute_hmm, args=("abcd", ), nprocs=self.world_size, join=True)
 

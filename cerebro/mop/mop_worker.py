@@ -67,15 +67,6 @@ class CerebroWorker:
         self.logger.info(
             "Sampling model {} with parallelism {} on worker {}".format(model_id, parallelism_name, self.worker_id))
 
-        # obtain paths
-        sample_data_path = os.path.join(self.params.etl["train"]["output_path"], "train_data{}.pkl".format(self.worker_id))
-
-        # sample 'sample_size' percent of examples from the dataset
-        dataset = CoalesceDataset(sample_data_path)
-        num_samples = int(len(dataset) * self.sample_size)
-        sampled_indices = random.Random(self.seed).sample(range(len(dataset)), num_samples)
-        sampled_dataset = Subset(dataset, sampled_indices)
-
         # get model hyperparameters
         model_config = self.kvs.mop_get_model_mapping(model_id)
 
@@ -89,7 +80,7 @@ class CerebroWorker:
 
         # call the train function
         start = time.time()
-        parallelism.execute_sample(self.minibatch_spec, sampled_dataset)
+        parallelism.execute_sample(self.minibatch_spec)
         end = time.time()
 
         time_elapsed = end - start
@@ -169,6 +160,35 @@ class CerebroWorker:
         output_path = os.path.join(self.params.mop["test_output_path"])
         Path(os.path.dirname(output_path)).mkdir(exist_ok=True)
         parallelism.execute_test(self.minibatch_spec, dataset)
+
+        # set worker status as complete
+        self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
+
+    def predict_model(self, model_tag, batch_size):
+        # create dataset object
+        predict_data_path = os.path.join(self.params.etl["predict"]["output_path"], "predict_data{}.pkl".format(self.worker_id))
+        dataset = CoalesceDataset(predict_data_path)
+
+        # get model checkpoint path
+        if model_tag.isdigit():
+            model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_tag),
+                                                 "model_object_{}.pt".format(model_tag))
+        else:
+            model_tag_dir = model_tag.split(".")[0]
+            model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], model_tag_dir, model_tag)
+
+        # default parallelism to DDP
+        p_name = "DDP"
+        ParallelismExecutor = get_parallelism_executor(p_name)
+
+        # create parallelism object
+        model_config = {"batch_size": batch_size}
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
+
+        # run test via parallelism
+        output_path = os.path.join(self.params.mop["predict_output_path"])
+        Path(os.path.dirname(output_path)).mkdir(exist_ok=True)
+        parallelism.execute_predict(self.minibatch_spec, dataset)
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
