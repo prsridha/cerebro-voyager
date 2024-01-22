@@ -388,7 +388,7 @@ class KeyValueStore:
     # model_id to model mapping
     def mop_set_model_mapping(self, model_map):
         cursor = self.conn.cursor()
-        for model_id, model_config in enumerate(model_map):
+        for model_id, model_config in model_map.items():
             query = """
                 INSERT OR REPLACE
                 INTO mop_model_mapping (model_id, model_config)
