@@ -11,17 +11,17 @@ class Parallelism:
     def save_checkpoint(self, model_object):
         pass
 
-    def execute_sample(self, minibatch_spec, dataset):
+    def execute_sample(self, minibatch_spec):
         pass
 
-    def execute_train(self, minibatch_spec, dataset, model_id):
+    def execute_train(self, minibatch_spec, model_id):
         pass
 
-    def execute_val(self, minibatch_spec, dataset, model_id):
+    def execute_val(self, minibatch_spec, model_id):
         pass
 
-    def execute_test(self, minibatch_spec, dataset):
+    def execute_test(self, minibatch_spec):
         pass
 
-    def execute_predict(self, minibatch_spec, dataset):
+    def execute_predict(self, minibatch_spec):
         pass

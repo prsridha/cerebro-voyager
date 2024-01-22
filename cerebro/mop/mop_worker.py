@@ -2,7 +2,6 @@ import os
 import gc
 import json
 import time
-import random
 from pathlib import Path
 
 import pandas as pd
@@ -13,10 +12,7 @@ import cerebro.kvs.constants as kvs_constants
 from cerebro.util.save_metrics import SaveMetrics
 from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
-from cerebro.util.coalesce_dataset import CoalesceDataset
 from cerebro.parallelisms.parallelism_init import get_parallelism_executor
-
-from torch.utils.data import Subset
 
 class CerebroWorker:
     def __init__(self):
@@ -94,10 +90,6 @@ class CerebroWorker:
         print("Training model {} on worker {}".format(model_id, self.worker_id))
         self.logger.info("Training model {} on worker {}".format(model_id, self.worker_id))
 
-        # create dataset object
-        train_data_path = os.path.join(self.params.etl["train"]["output_path"], "train_data{}.pkl".format(self.worker_id))
-        dataset = CoalesceDataset(train_data_path)
-
         # get the best parallelism class for this model
         p_name = self.kvs.mop_get_parallelism_mapping(model_id)
         ParallelismExecutor = get_parallelism_executor(p_name)
@@ -109,7 +101,7 @@ class CerebroWorker:
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, epoch, self.seed)
 
         # call the train function
-        parallelism.execute_train(self.minibatch_spec, dataset, model_id)
+        parallelism.execute_train(self.minibatch_spec, model_id)
 
         if is_last_worker:
             # aggregate and plot train epoch metrics
@@ -128,18 +120,10 @@ class CerebroWorker:
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
     def validate_model(self, model_id, parallelism):
-        # create dataset object
-        val_data_path = os.path.join(self.params.etl["val"]["output_path"], "val_data.pkl")
-        dataset = CoalesceDataset(val_data_path)
-
         # run validation via parallelism
-        parallelism.execute_val(self.minibatch_spec, dataset, model_id)
+        parallelism.execute_val(self.minibatch_spec, model_id)
 
     def test_model(self, model_tag, batch_size):
-        # create dataset object
-        test_data_path = os.path.join(self.params.etl["test"]["output_path"], "test_data{}.pkl".format(self.worker_id))
-        dataset = CoalesceDataset(test_data_path)
-
         # get model checkpoint path
         if model_tag.isdigit():
             model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_tag),
@@ -159,16 +143,12 @@ class CerebroWorker:
         # run test via parallelism
         output_path = os.path.join(self.params.mop["test_output_path"])
         Path(os.path.dirname(output_path)).mkdir(exist_ok=True)
-        parallelism.execute_test(self.minibatch_spec, dataset)
+        parallelism.execute_test(self.minibatch_spec)
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
     def predict_model(self, model_tag, batch_size):
-        # create dataset object
-        predict_data_path = os.path.join(self.params.etl["predict"]["output_path"], "predict_data{}.pkl".format(self.worker_id))
-        dataset = CoalesceDataset(predict_data_path)
-
         # get model checkpoint path
         if model_tag.isdigit():
             model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_tag),
@@ -188,7 +168,7 @@ class CerebroWorker:
         # run test via parallelism
         output_path = os.path.join(self.params.mop["predict_output_path"])
         Path(os.path.dirname(output_path)).mkdir(exist_ok=True)
-        parallelism.execute_predict(self.minibatch_spec, dataset)
+        parallelism.execute_predict(self.minibatch_spec)
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
