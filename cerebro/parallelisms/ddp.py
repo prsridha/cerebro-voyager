@@ -73,6 +73,7 @@ class DDPExecutor(Parallelism):
         # create state dict path
         self.state_dict_path = os.path.join(os.path.dirname(self.model_path), "state_dicts")
         Path(self.state_dict_path).mkdir(parents=True, exist_ok=True)
+        self.logger.info("Initialized DDP Executor with model ")
 
     def save_local_metrics(self, rank, metrics_list, user_metrics_func):
         # group-by on key
@@ -97,14 +98,17 @@ class DDPExecutor(Parallelism):
             if self.mode == "train":
                 SaveMetrics.save_to_tensorboard(reduced_metrics, self.mode, self.model_id, self.epoch)
                 SaveMetrics.save_to_file(reduced_metrics, self.mode, "{}.csv".format(self.model_id))
+                self.logger.info(f"Saved model {self.model_id}'s train metrics to file and tensorboard")
             elif self.mode == "val":
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
                 SaveMetrics.save_to_tensorboard(result, self.mode, self.model_id, self.epoch)
+                self.logger.info(f"Saved model {self.model_id}'s val metrics to tensorboard")
             elif self.mode == "test":
                 # run through user's metrics aggregator
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
                 output_filename = "test_output_{}.csv".format(self.model_id)
                 SaveMetrics.save_to_file(result, self.mode, output_filename)
+                self.logger.info(f"Saved model {self.model_id}'s test metrics to file")
 
     def load_checkpoint(self, model_object):
         # check if checkpoints exist
@@ -134,17 +138,13 @@ class DDPExecutor(Parallelism):
                     torch.save(obj.module.state_dict(), state_dict_file_path)
 
     def _execute_inner(self, rank, user_func_str, user_metrics_func_str=None):
-        print("Okay till here 1")
         # initialize process with this rank
         setup(rank, self.world_size)
-
-        print("Okay till here 2")
 
         # load user_func from serialized str
         user_func = dill.loads(base64.b64decode(user_func_str))
         user_metrics_func = dill.loads(base64.b64decode(user_metrics_func_str)) if user_metrics_func_str else None
 
-        print("Okay till here 3")
         # get dataset
         data_path = self.etl_output_path[self.mode]
         dataset = CoalesceDataset(data_path)
@@ -157,19 +157,17 @@ class DDPExecutor(Parallelism):
         sampler = DistributedSampler(dataset, rank=rank, num_replicas=self.world_size, shuffle=False, seed=self.seed)
         dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False)
 
-        print("Okay till here 4")
         # load models and their state dicts
         model_object = torch.load(self.model_path)
         updated_obj = self.load_checkpoint(model_object)
 
-        print("Okay till here 5")
         # parallelize models from model object file
         for obj_name, obj in updated_obj.items():
             if obj_name != "optimizer":
                 obj.to(device)
                 p_model = DDP(obj)
                 updated_obj[obj_name] = p_model
-        print("Okay till here 6")
+
         # call user's ML function
         if self.mode == "sample":
             for k, minibatch in enumerate(dataloader):
@@ -177,6 +175,8 @@ class DDPExecutor(Parallelism):
 
         elif self.mode == "train":
             minibatch_metrics = []
+            if rank == 0:
+                self.logger.info("Running user's train function with DDP on a minibatch")
             for k, minibatch in enumerate(dataloader):
                 updated_obj, metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
                 minibatch_metrics.append(metrics)
@@ -184,6 +184,8 @@ class DDPExecutor(Parallelism):
 
             # save checkpoint of uploaded model object
             self.save_checkpoint(updated_obj)
+            if rank == 0:
+                self.logger.info("Completed user's train function with DDP on a minibatch. Metrics and checkpoint saved")
 
         elif self.mode == "val":
             minibatch_metrics = []
@@ -266,7 +268,6 @@ class DDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
-
     def execute_sample(self, minibatch_spec):
         # set values
         self.mode = "sample"
@@ -284,8 +285,8 @@ class DDPExecutor(Parallelism):
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
-        # mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
-        mp.spawn(self.execute_hmm, args=(user_train_func_str,), nprocs=self.world_size, join=True)
+        self.logger.info(f"Executing DDP train for model {self.model_id} on worker {self.worker_id}")
+        mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
     def execute_val(self, minibatch_spec, model_id):
         # get val and metrics_agg functions
@@ -296,6 +297,7 @@ class DDPExecutor(Parallelism):
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
+        self.logger.info(f"Executing DDP val for model {self.model_id} on worker {self.worker_id}")
         mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
     def execute_test(self, minibatch_spec):
@@ -306,6 +308,7 @@ class DDPExecutor(Parallelism):
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
+        self.logger.info(f"Executing DDP test for model {self.model_id} on worker {self.worker_id}")
         mp.spawn(self._execute_inner, args=(user_test_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
     def execute_predict(self, minibatch_spec):
@@ -315,4 +318,5 @@ class DDPExecutor(Parallelism):
         user_pred_func_str = base64.b64encode(dill.dumps(user_pred_func))
 
         # spawn DDP workers
+        self.logger.info(f"Executing DDP predict for model {self.model_id} on worker {self.worker_id}")
         mp.spawn(self._execute_inner, args=(user_pred_func_str,), nprocs=self.world_size, join=True)
