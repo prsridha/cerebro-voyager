@@ -100,7 +100,9 @@ class DDPExecutor(Parallelism):
             grouped_metrics[key] /= self.world_size
         reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
 
-        print("Okay till here 5")
+        print("Okay till here 5 - ")
+        from pprint import pprint
+        pprint(reduced_metrics)
 
         if rank == 0:
             # plot only train and val metrics on tensorboard
