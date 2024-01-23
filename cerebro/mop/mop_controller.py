@@ -191,13 +191,38 @@ class MOPController:
             torch.save(model_object, model_object_path)
             self.logger.info("Created model components for model {}".format(model_id))
 
-    def sampler(self):
-        # skipping Sampling since only DDP is enabled
+    def skipped_sampler(self):
+        # DDP is the only available parallelism
         best_parallelism = "DDP"
+        msts_parallelisms = deepcopy(self.msts)
+        for m in range(self.num_models):
+            msts_parallelisms[m]["parallelism"] = best_parallelism
+            self.kvs.mop_set_parallelism_mapping(m, best_parallelism)
+
+        self.logger.info("Completed Trial Runs")
+
+        # print model selection search space
+        self.logger.info("List of models and their hyperparameter configurations:")
+        print("List of models and their hyperparameter configurations:")
+        config_df = pd.DataFrame(msts_parallelisms).drop(columns="parallelism")
+        config_df = config_df.rename_axis('model_id').reset_index()
+        display(config_df)
+        self.logger.info(str(config_df.to_dict()))
+
+
         for m in range(self.num_models):
             self.kvs.mop_set_parallelism_mapping(m, best_parallelism)
+
+        # print model selection search space
+        self.logger.info("List of models and their chosen parallelisms:")
+        print("List of models and their chosen parallelisms:")
+        config_df = pd.DataFrame(msts_parallelisms)
+        config_df = config_df.rename_axis('model_id').reset_index()
+        display(config_df)
+        self.logger.info(str(config_df.to_dict()))
         return
 
+    def sampler(self):
         mpls = set()
         mpl_on_worker = {}
         n_workers = self.num_workers
@@ -252,14 +277,12 @@ class MOPController:
 
         self.logger.info("Completed Trial Runs")
 
+        # print model selection search space
         self.logger.info("List of models and their chosen parallelisms:")
         print("List of models and their chosen parallelisms:")
-
-        # print model selection search space
         config_df = pd.DataFrame(msts_parallelisms)
         config_df = config_df.rename_axis('model_id').reset_index()
         display(config_df)
-
         self.logger.info(str(config_df.to_dict()))
 
     def init_epoch(self):
@@ -441,7 +464,7 @@ class MOPController:
 
         # skipping Sampling as only DDP is enabled
         # print("Running parallelism sampling...")
-        self.sampler()
+        self.skipped_sampler()
 
         print("\n")
         epoch_progress = tqdm_notebook(total=self.num_epochs, desc='Epochs', position=0, leave=True)
