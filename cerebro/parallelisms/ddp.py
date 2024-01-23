@@ -237,7 +237,8 @@ class DDPExecutor(Parallelism):
         dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False)
 
         # load models and their state dicts
-        model_object = torch.load("/data/checkpoint_storage/model_1/model_object_1.pt")
+        # model_object = torch.load("/data/checkpoint_storage/model_1/model_object_1.pt")
+        model_object = torch.load(self.model_path)
         updated_obj = self.load_checkpoint(model_object)
 
         # parallelize models from model object file
