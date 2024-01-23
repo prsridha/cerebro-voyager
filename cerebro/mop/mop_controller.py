@@ -75,25 +75,37 @@ class MOPController:
                 self.logger.info("Initialized MOP workers")
 
     def scale_workers(self, num_workers):
+        def get_ready_pod_count(statefulset_name):
+            v1 = client.CoreV1Api()
+            pods = v1.list_namespaced_pod(namespace=self.namespace,
+                                          label_selector=f"statefulset.kubernetes.io/pod-name={statefulset_name}").items
+
+            # check if pods are in "Running" and "Ready" state
+            ready_count = 0
+            for pod in pods:
+                if pod.status.phase == "Running" and all(c.ready for c in pod.status.conditions if c.type == "Ready"):
+                    ready_count += 1
+
+            return ready_count
+
         config.load_kube_config()
         v1 = client.AppsV1Api()
-
-        current_replicas = v1.read_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace).spec.replicas
+        current_replicas = v1.read_namespaced_stateful_set(name=f"{self.username}-cerebro-mop-worker", namespace=self.namespace).spec.replicas
         if current_replicas == num_workers:
             self.logger.info("Number of MOP workers already at {}".format(current_replicas))
             return False
 
         # scale up MOP workers
         print("Scaling MOP workers to {}".format(num_workers))
-        statefulset = v1.read_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace)
+        statefulset = v1.read_namespaced_stateful_set(name=f"{self.username}-cerebro-mop-worker", namespace=self.namespace)
         statefulset.spec.replicas = num_workers
-        v1.replace_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace, body=statefulset)
+        v1.replace_namespaced_stateful_set(name=f"{self.username}-cerebro-mop-worker", namespace=self.namespace, body=statefulset)
 
         # wait for desired number of workers
         wait_time = 0
-        current_replicas = v1.read_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace).spec.replicas
-        while current_replicas != num_workers:
-            current_replicas = v1.read_namespaced_stateful_set(name="{}-cerebro-mop-worker".format(self.username), namespace=self.namespace).spec.replicas
+        num_ready = get_ready_pod_count(f"{self.username}-cerebro-mop-worker")
+        while num_ready != num_workers:
+            num_ready = get_ready_pod_count(f"{self.username}-cerebro-mop-worker")
             time.sleep(0.5)
             wait_time += 0.5
             if wait_time >= 100:
