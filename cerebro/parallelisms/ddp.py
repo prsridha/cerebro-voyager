@@ -175,9 +175,12 @@ class DDPExecutor(Parallelism):
 
         elif self.mode == "train":
             minibatch_metrics = []
+            num_iterations = len(dataloader)
             if rank == 0:
                 self.logger.info("Running user's train function with DDP on a minibatch")
             for k, minibatch in enumerate(dataloader):
+                if rank == 0:
+                    print(f"Iteration {k}/{num_iterations}")
                 updated_obj, metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
                 minibatch_metrics.append(metrics)
             self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
