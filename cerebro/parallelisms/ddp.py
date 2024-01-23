@@ -98,7 +98,7 @@ class DDPExecutor(Parallelism):
         # get average
         for key in grouped_metrics:
             grouped_metrics[key] /= self.world_size
-        reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
+        reduced_metrics = {key: tensor.item() for key, tensor in grouped_metrics.items()}
 
         print("Okay till here 5 - ")
         from pprint import pprint
