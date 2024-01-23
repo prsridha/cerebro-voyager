@@ -112,7 +112,7 @@ class ETLController:
         def scale_complete():
             if num_workers == 0:
                 v1 = client.AppsV1Api()
-                current_replicas = v1.read_namespaced_stateful_set(name="f{self.username}-{app_name}",
+                current_replicas = v1.read_namespaced_stateful_set(name=f"{self.username}-{app_name}",
                                                                    namespace=self.namespace).spec.replicas
                 return current_replicas == num_workers
             else:
