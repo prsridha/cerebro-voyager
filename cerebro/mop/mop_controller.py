@@ -75,17 +75,15 @@ class MOPController:
                 self.logger.info("Initialized MOP workers")
 
     def scale_workers(self, num_workers):
-        def get_ready_pod_count(statefulset_name):
+        def get_ready_pod_count(app_name):
             v1 = client.CoreV1Api()
             pods = v1.list_namespaced_pod(namespace=self.namespace,
-                                          label_selector=f"statefulset.kubernetes.io/pod-name={statefulset_name}").items
-
-            # check if pods are in "Running" and "Ready" state
+                                          label_selector=f"app={app_name},user={self.username}").items
+            # check if pods are in "Running" state
             ready_count = 0
             for pod in pods:
-                if pod.status.phase == "Running" and all(c.ready for c in pod.status.conditions if c.type == "Ready"):
+                if pod.status.phase == "Running":
                     ready_count += 1
-
             return ready_count
 
         config.load_kube_config()
@@ -103,9 +101,9 @@ class MOPController:
 
         # wait for desired number of workers
         wait_time = 0
-        num_ready = get_ready_pod_count(f"{self.username}-cerebro-mop-worker")
+        num_ready = get_ready_pod_count("cerebro-mop-worker")
         while num_ready != num_workers:
-            num_ready = get_ready_pod_count(f"{self.username}-cerebro-mop-worker")
+            num_ready = get_ready_pod_count("cerebro-mop-worker")
             time.sleep(0.5)
             wait_time += 0.5
             if wait_time >= 100:
