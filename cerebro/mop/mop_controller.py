@@ -209,19 +209,6 @@ class MOPController:
         display(config_df)
         self.logger.info(str(config_df.to_dict()))
 
-
-        for m in range(self.num_models):
-            self.kvs.mop_set_parallelism_mapping(m, best_parallelism)
-
-        # print model selection search space
-        self.logger.info("List of models and their chosen parallelisms:")
-        print("List of models and their chosen parallelisms:")
-        config_df = pd.DataFrame(msts_parallelisms)
-        config_df = config_df.rename_axis('model_id').reset_index()
-        display(config_df)
-        self.logger.info(str(config_df.to_dict()))
-        return
-
     def sampler(self):
         mpls = set()
         mpl_on_worker = {}
