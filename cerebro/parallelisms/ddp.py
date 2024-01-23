@@ -223,6 +223,49 @@ class DDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
+    def execute_hmm(self, rank, user_func_str):
+        # initialize process with this rank
+        setup(rank, self.world_size)
+
+        dataset = CoalesceDataset("train_data1.pkl")
+
+        user_func = dill.loads(base64.b64decode(user_func_str))
+
+        # create data sampler and dataloader
+        sampler = DistributedSampler(dataset, rank=rank, num_replicas=self.world_size, shuffle=False, seed=1)
+        dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False)
+
+        # load models and their state dicts
+        model_object = torch.load("/data/checkpoint_storage/model_1/model_object_1.pt")
+        updated_obj = self.load_checkpoint(model_object)
+
+        # parallelize models from model object file
+        for obj_name, obj in updated_obj.items():
+            if obj_name != "optimizer":
+                obj.to(device)
+                p_model = DDP(obj)
+                updated_obj[obj_name] = p_model
+
+        num_iterations = len(dataloader)
+        minibatch_metrics = []
+        for k, minibatch in enumerate(dataloader):
+            if rank == 0:
+                print(f"Iteration {k}/{num_iterations}")
+            updated_obj, metrics = user_func.train(updated_obj, minibatch, self.hyperparams, device)
+            minibatch_metrics.append(metrics)
+
+        # self.save_local_metrics(rank, minibatch_metrics)
+
+        # save checkpoint of uploaded model object
+        self.save_checkpoint(updated_obj)
+
+        print("Completed DDP event")
+
+        # clean up resources
+        gc.collect()
+        clean_up()
+
+
     def execute_sample(self, minibatch_spec):
         # set values
         self.mode = "sample"
@@ -240,7 +283,8 @@ class DDPExecutor(Parallelism):
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
         # spawn DDP workers
-        mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        # mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        mp.spawn(self.execute_hmm, args=(user_train_func_str,), nprocs=self.world_size, join=True)
 
     def execute_val(self, minibatch_spec, model_id):
         # get val and metrics_agg functions
