@@ -227,7 +227,8 @@ class DDPExecutor(Parallelism):
         # initialize process with this rank
         setup(rank, self.world_size)
 
-        dataset = CoalesceDataset("train_data1.pkl")
+        data_path = self.etl_output_path[self.mode]
+        dataset = CoalesceDataset(data_path)
 
         user_func = dill.loads(base64.b64decode(user_func_str))
 
