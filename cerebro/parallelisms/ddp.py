@@ -76,27 +76,38 @@ class DDPExecutor(Parallelism):
         self.logger.info("Initialized DDP Executor with model ")
 
     def save_local_metrics(self, rank, metrics_list, user_metrics_func):
+        print("Okay till here 1")
         # group-by on key
         df = pd.DataFrame(metrics_list)
         grouped_metrics = df.to_dict(orient='list')
+
+        print("Okay till here 2")
 
         # convert to tensors
         for key in grouped_metrics:
             grouped_metrics[key] = torch.tensor(grouped_metrics[key]).to(device)
 
+        print("Okay till here 3")
+
         # all-reduce
         for key, tensor in grouped_metrics.items():
             dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+
+        print("Okay till here 4")
 
         # get average
         for key in grouped_metrics:
             grouped_metrics[key] /= self.world_size
         reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
 
+        print("Okay till here 5")
+
         if rank == 0:
             # plot only train and val metrics on tensorboard
             if self.mode == "train":
+                print("Okay till here 6")
                 SaveMetrics.save_to_tensorboard(reduced_metrics, self.mode, self.model_id, self.epoch)
+                print("Okay till here 7")
                 SaveMetrics.save_to_file(reduced_metrics, self.mode, "{}.csv".format(self.model_id))
                 self.logger.info(f"Saved model {self.model_id}'s train metrics to file and tensorboard")
             elif self.mode == "val":
@@ -109,6 +120,8 @@ class DDPExecutor(Parallelism):
                 output_filename = "test_output_{}.csv".format(self.model_id)
                 SaveMetrics.save_to_file(result, self.mode, output_filename)
                 self.logger.info(f"Saved model {self.model_id}'s test metrics to file")
+
+        print("Okay till here 8")
 
     def load_checkpoint(self, model_object):
         # check if checkpoints exist
