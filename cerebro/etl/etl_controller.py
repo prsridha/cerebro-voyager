@@ -106,31 +106,37 @@ class ETLController:
         self.logger.info("Initialized all ETL workers")
 
     def scale_workers(self, num_workers):
-        def get_ready_pod_count(app_name):
-            v1 = client.CoreV1Api()
-            pods = v1.list_namespaced_pod(namespace=self.namespace,
-                                          label_selector=f"app={app_name},user={self.username}").items
-            # check if pods are in "Running" state
-            ready_count = 0
-            for pod in pods:
-                if pod.status.phase == "Running":
-                    ready_count += 1
-            return ready_count
+        config.load_kube_config()
+        app_name = "cerebro-etl-worker"
 
-        # print("Scaling ETL workers to {}".format(num_workers))
+        def scale_complete():
+            if num_workers == 0:
+                v1 = client.AppsV1Api()
+                current_replicas = v1.read_namespaced_stateful_set(name="f{self.username}-{app_name}",
+                                                                   namespace=self.namespace).spec.replicas
+                return current_replicas == num_workers
+            else:
+                # check if pods are in "Running" state
+                v1 = client.CoreV1Api()
+                pods = v1.list_namespaced_pod(namespace=self.namespace,
+                                              label_selector=f"app={app_name},user={self.username}").items
+                ready_count = 0
+                for pod in pods:
+                    if pod.status.phase == "Running":
+                        ready_count += 1
+                return ready_count == num_workers
+
 
         # scale up ETL workers
-        config.load_kube_config()
+        print("Scaling ETL workers to {}".format(num_workers))
         v1 = client.AppsV1Api()
-        statefulset = v1.read_namespaced_stateful_set(name=f"{self.username}-cerebro-etl-worker", namespace=self.namespace)
+        statefulset = v1.read_namespaced_stateful_set(name=f"{self.username}-{app_name}", namespace=self.namespace)
         statefulset.spec.replicas = num_workers
-        v1.replace_namespaced_stateful_set(name=f"{self.username}-cerebro-etl-worker", namespace=self.namespace, body=statefulset)
+        v1.replace_namespaced_stateful_set(name=f"{self.username}-{app_name}", namespace=self.namespace, body=statefulset)
 
         # wait for desired number of workers
         wait_time = 0
-        num_ready = get_ready_pod_count("cerebro-etl-worker")
-        while num_ready != num_workers:
-            num_ready = get_ready_pod_count("cerebro-etl-worker")
+        while not scale_complete():
             time.sleep(0.5)
             wait_time += 0.5
             if wait_time >= 100:
