@@ -45,7 +45,7 @@ class SaveMetrics:
 
         # create other data structures
         user_metrics = defaultdict(list)
-        summary_writer = tf.summary.create_file_writer(tensorboard_path, name=mode + "_" + str(model_id))
+        summary_writer = tf.summary.create_file_writer(tensorboard_path, name=f"{mode}_{model_id}")
 
         if mode == "train":
             if os.path.isfile(metrics_metadata_path):
