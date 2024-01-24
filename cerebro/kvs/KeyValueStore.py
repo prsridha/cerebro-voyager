@@ -25,10 +25,10 @@ class KeyValueStore:
 
         # get number of workers
         try:
-            config.load_kube_config()
+            config.load_config()
         except config.config_exception.ConfigException as e:
             time.sleep(1)
-            config.load_kube_config()
+            config.load_config()
 
         v1 = client.CoreV1Api()
         username = os.environ['USERNAME']
