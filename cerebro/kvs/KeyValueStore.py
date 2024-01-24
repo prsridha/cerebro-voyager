@@ -1,8 +1,10 @@
 import os
 import dill
+import time
 import json
 import base64
 import sqlite3
+
 from kubernetes import client, config
 
 
@@ -22,7 +24,12 @@ class KeyValueStore:
         self.conn.commit()
 
         # get number of workers
-        config.load_kube_config()
+        try:
+            config.load_kube_config()
+        except config.config_exception.ConfigException as e:
+            time.sleep(1)
+            config.load_kube_config()
+
         v1 = client.CoreV1Api()
         username = os.environ['USERNAME']
         namespace = os.environ['NAMESPACE']
