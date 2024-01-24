@@ -108,7 +108,7 @@ class MOPController:
         while not scale_complete():
             time.sleep(0.5)
             wait_time += 0.5
-            if wait_time >= 100:
+            if wait_time >= 250:
                 raise Exception("Unable to schedule MOP Workers on Voyager")
         return True
 
