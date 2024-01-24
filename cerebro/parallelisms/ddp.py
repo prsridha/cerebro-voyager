@@ -226,49 +226,6 @@ class DDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
-    def execute_hmm(self, rank, user_func_str):
-        # initialize process with this rank
-        setup(rank, self.world_size)
-
-        data_path = self.etl_output_path[self.mode]
-        dataset = CoalesceDataset(data_path)
-
-        user_func = dill.loads(base64.b64decode(user_func_str))
-
-        # create data sampler and dataloader
-        sampler = DistributedSampler(dataset, rank=rank, num_replicas=self.world_size, shuffle=False, seed=1)
-        dataloader = DataLoader(dataset, batch_size=self.hyperparams["batch_size"], sampler=sampler, shuffle=False)
-
-        # load models and their state dicts
-        model_object = torch.load(self.model_path)
-        updated_obj = self.load_checkpoint(model_object)
-
-        # parallelize models from model object file
-        for obj_name, obj in updated_obj.items():
-            if obj_name != "optimizer":
-                obj.to(device)
-                p_model = DDP(obj)
-                updated_obj[obj_name] = p_model
-
-        num_iterations = len(dataloader)
-        minibatch_metrics = []
-        for k, minibatch in enumerate(dataloader):
-            if rank == 0:
-                print(f"Iteration {k}/{num_iterations}")
-            updated_obj, metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
-            minibatch_metrics.append(metrics)
-
-        # self.save_local_metrics(rank, minibatch_metrics)
-
-        # save checkpoint of uploaded model object
-        self.save_checkpoint(updated_obj)
-
-        print("Completed DDP event")
-
-        # clean up resources
-        gc.collect()
-        clean_up()
-
     def execute_sample(self, minibatch_spec):
         # set values
         self.mode = "sample"
@@ -287,7 +244,18 @@ class DDPExecutor(Parallelism):
 
         # spawn DDP workers
         self.logger.info(f"Executing DDP train for model {self.model_id} on worker {self.worker_id}")
-        mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+
+        # one free retry
+        try:
+            mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        except Exception as e:
+            self.logger.error(f"Error occurred in DDP train function for model {self.model_id} on worker {self.worker_id}")
+            self.logger.error(str(e))
+            self.logger.info("Retrying DDP train function")
+            mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size,
+                     join=True)
+        finally:
+            self.logger.info("Completed DDP train function")
 
     def execute_val(self, minibatch_spec, model_id):
         # get val and metrics_agg functions
@@ -299,7 +267,16 @@ class DDPExecutor(Parallelism):
 
         # spawn DDP workers
         self.logger.info(f"Executing DDP val for model {self.model_id} on worker {self.worker_id}")
-        mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        # one free retry
+        try:
+            mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        except Exception as e:
+            self.logger.error(f"Error occurred in DDP val function for model {self.model_id} on worker {self.worker_id}")
+            self.logger.error(str(e))
+            self.logger.info("Retrying DDP val function")
+            mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        finally:
+            self.logger.info("Completed DDP val function")
 
     def execute_test(self, minibatch_spec):
         # get val and metrics_agg functions
