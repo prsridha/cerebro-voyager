@@ -25,8 +25,8 @@ class SaveMetrics:
         with open(user_metrics_path, mode='a+', newline='') as file:
             writer = csv.DictWriter(file, fieldnames=metrics.keys())
 
-            # if the file doesn't exist, write the header row
-            if not os.path.isfile(user_metrics_path):
+            # if the file is empty, write the header row
+            if os.stat(user_metrics_path).st_size == 0:
                 writer.writeheader()
 
             # write the data row
