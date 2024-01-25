@@ -269,7 +269,7 @@ class DDPExecutor(Parallelism):
         # get val and metrics_agg functions
         self.mode = "val"
         self.model_id = model_id
-        user_val_func, user_metrics_func = minibatch_spec.valtest, minibatch_spec.metrics_agg
+        user_val_func, user_metrics_func = minibatch_spec.val_test, minibatch_spec.metrics_agg
         user_val_func_str = base64.b64encode(dill.dumps(user_val_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
@@ -289,7 +289,7 @@ class DDPExecutor(Parallelism):
     def execute_test(self, minibatch_spec):
         # get val and metrics_agg functions
         self.mode = "test"
-        user_test_func, user_metrics_func = minibatch_spec.valtest, minibatch_spec.metrics_agg
+        user_test_func, user_metrics_func = minibatch_spec.val_test, minibatch_spec.metrics_agg
         user_test_func_str = base64.b64encode(dill.dumps(user_test_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
