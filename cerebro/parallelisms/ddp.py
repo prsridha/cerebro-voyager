@@ -141,10 +141,6 @@ class DDPExecutor(Parallelism):
         # initialize process with this rank
         setup(rank, self.world_size)
 
-        if rank == 0:
-            from pprint import pprint
-            pprint("user_func_str - ", user_func_str[:100])
-
         # load user_func from serialized str
         user_func = dill.loads(base64.b64decode(user_func_str))
         user_metrics_func = dill.loads(base64.b64decode(user_metrics_func_str)) if user_metrics_func_str else None
@@ -193,6 +189,11 @@ class DDPExecutor(Parallelism):
                 self.logger.info("Completed user's train function with DDP on a minibatch. Metrics and checkpoint saved")
 
         elif self.mode == "val":
+            if rank == 0:
+                import inspect
+                from pprint import pprint
+                pprint(inspect.getsource(user_func)[:100])
+
             minibatch_metrics = []
             for k, minibatch in enumerate(dataloader):
                 metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
