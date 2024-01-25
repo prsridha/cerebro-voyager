@@ -190,7 +190,7 @@ class DDPExecutor(Parallelism):
 
         elif self.mode == "val":
             minibatch_metrics = []
-            for k, minibatch in dataloader:
+            for k, minibatch in enumerate(dataloader):
                 metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
                 minibatch_metrics.append(metrics)
 
@@ -198,7 +198,7 @@ class DDPExecutor(Parallelism):
 
         elif self.mode == "test":
             test_outputs = []
-            for k, minibatch in dataloader:
+            for k, minibatch in enumerate(dataloader):
                 output = user_func(updated_obj, minibatch, self.hyperparams, device)
                 test_outputs.append(output)
 
@@ -206,7 +206,7 @@ class DDPExecutor(Parallelism):
 
         elif self.mode == "predict":
             predict_outputs = []
-            for k, minibatch in dataloader:
+            for k, minibatch in enumerate(dataloader):
                 output = user_func(updated_obj, minibatch, self.hyperparams, device)
                 output["row_id"] = minibatch[3]
                 predict_outputs.append(output)
