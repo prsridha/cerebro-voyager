@@ -194,6 +194,9 @@ class DDPExecutor(Parallelism):
                 metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
                 minibatch_metrics.append(metrics)
 
+            from pprint import pprint
+            pprint(minibatch_metrics)
+
             self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
 
         elif self.mode == "test":
