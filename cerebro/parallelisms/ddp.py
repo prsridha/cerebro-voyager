@@ -189,11 +189,6 @@ class DDPExecutor(Parallelism):
                 self.logger.info("Completed user's train function with DDP on a minibatch. Metrics and checkpoint saved")
 
         elif self.mode == "val":
-            if rank == 0:
-                import inspect
-                from pprint import pprint
-                pprint(inspect.getsource(user_func)[:100])
-
             minibatch_metrics = []
             for k, minibatch in enumerate(dataloader):
                 metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
