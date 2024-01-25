@@ -77,13 +77,15 @@ class DDPExecutor(Parallelism):
 
     def save_local_metrics(self, rank, metrics_list, user_metrics_func):
         from pprint import pprint
-        pprint("METRICS LIST - ", metrics_list)
+        print("METRICS LIST - ")
+        pprint(metrics_list)
 
         # group-by on key
         df = pd.DataFrame(metrics_list)
         grouped_metrics = df.to_dict(orient='list')
 
-        pprint("GROUPED METRICS - ", grouped_metrics)
+        print("GROUPED METRICS - ")
+        pprint(grouped_metrics)
 
         # convert to tensors
         for key in grouped_metrics:
@@ -98,7 +100,8 @@ class DDPExecutor(Parallelism):
             grouped_metrics[key] /= self.world_size
         reduced_metrics = {key: tensor.item() for key, tensor in grouped_metrics.items()}
 
-        pprint("REDUCED METRICS - ", reduced_metrics)
+        print("REDUCED METRICS - ")
+        pprint(reduced_metrics)
 
         if rank == 0:
             # plot only train and val metrics on tensorboard
