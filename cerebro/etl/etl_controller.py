@@ -175,7 +175,7 @@ class ETLController:
         exclude_prefix = os.path.join(self.params.etl["etl_dir"], "val")
         prefix = os.path.join(exclude_prefix, "val_data.pkl")
         Path(self.params.etl["val"]["output_path"]).mkdir(parents=True, exist_ok=True)
-        output_path = os.path.join(self.params.etl["val"]["output_path"], "val_data.pkl")
+        output_path = os.path.join(self.params.etl["val"]["output_path"])
         file_io.download(output_path, prefix, exclude_prefix)
         val_progress.update(100)
         self.logger.info("Completed download of val data from Ceph on controller")
