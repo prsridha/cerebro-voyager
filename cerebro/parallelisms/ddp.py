@@ -109,14 +109,17 @@ class DDPExecutor(Parallelism):
         if rank == 0:
             # plot only train and val metrics on tensorboard
             if self.mode == "train":
+                reduced_metrics = {key: tensor.item() for key, tensor in grouped_metrics.items()}
                 SaveMetrics.save_to_tensorboard(reduced_metrics, self.mode, self.model_id, self.epoch)
                 SaveMetrics.save_to_file(reduced_metrics, self.mode, "{}.csv".format(self.model_id))
                 self.logger.info(f"Saved model {self.model_id}'s train metrics to file and tensorboard")
             elif self.mode == "val":
+                reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
                 SaveMetrics.save_to_tensorboard(result, self.mode, self.model_id, self.epoch)
                 self.logger.info(f"Saved model {self.model_id}'s val metrics to tensorboard")
             elif self.mode == "test":
+                reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
                 # run through user's metrics aggregator
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
                 output_filename = "test_output_{}.csv".format(self.model_id)
