@@ -103,10 +103,6 @@ class DDPExecutor(Parallelism):
         reduced_metrics = {key: tensor.item() for key, tensor in grouped_metrics.items()}
 
         if rank == 0:
-            print("REDUCED METRICS - ")
-            pprint(reduced_metrics)
-
-        if rank == 0:
             # plot only train and val metrics on tensorboard
             if self.mode == "train":
                 reduced_metrics = {key: tensor.item() for key, tensor in grouped_metrics.items()}
@@ -115,6 +111,9 @@ class DDPExecutor(Parallelism):
                 self.logger.info(f"Saved model {self.model_id}'s train metrics to file and tensorboard")
             elif self.mode == "val":
                 reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
+                if rank == 0:
+                    print("REDUCED METRICS - ")
+                    pprint(reduced_metrics)
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
                 SaveMetrics.save_to_tensorboard(result, self.mode, self.model_id, self.epoch)
                 self.logger.info(f"Saved model {self.model_id}'s val metrics to tensorboard")
