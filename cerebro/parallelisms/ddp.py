@@ -100,7 +100,6 @@ class DDPExecutor(Parallelism):
         # get average
         for key in grouped_metrics:
             grouped_metrics[key] /= self.world_size
-        reduced_metrics = {key: tensor.item() for key, tensor in grouped_metrics.items()}
 
         if rank == 0:
             # plot only train and val metrics on tensorboard
