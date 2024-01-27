@@ -1,5 +1,6 @@
 import os
 import gc
+import time
 import dill
 import base64
 import random
@@ -233,6 +234,7 @@ class DDPExecutor(Parallelism):
         user_train_func_str = base64.b64encode(dill.dumps(minibatch_spec))
 
         # spawn DDP workers
+        time.sleep(2)
         mp.spawn(self._execute_inner, args=(user_train_func_str,), nprocs=self.world_size, join=True)
 
     def execute_train(self, minibatch_spec, model_id):
@@ -248,6 +250,7 @@ class DDPExecutor(Parallelism):
 
         # one free retry
         try:
+            time.sleep(2)
             mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
         except Exception as e:
             self.logger.error(f"Error occurred in DDP train function for model {self.model_id} on worker {self.worker_id}")
@@ -270,6 +273,7 @@ class DDPExecutor(Parallelism):
         self.logger.info(f"Executing DDP val for model {self.model_id} on worker {self.worker_id}")
         # one free retry
         try:
+            time.sleep(2)
             mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
         except Exception as e:
             self.logger.error(f"Error occurred in DDP val function for model {self.model_id} on worker {self.worker_id}")
@@ -286,8 +290,9 @@ class DDPExecutor(Parallelism):
         user_test_func_str = base64.b64encode(dill.dumps(user_test_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
-        # spawn DDP workers
         self.logger.info(f"Executing DDP test for model {self.model_id} on worker {self.worker_id}")
+        # spawn DDP workers
+        time.sleep(2)
         mp.spawn(self._execute_inner, args=(user_test_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
 
     def execute_predict(self, minibatch_spec):
@@ -296,6 +301,7 @@ class DDPExecutor(Parallelism):
         user_pred_func = minibatch_spec.predict
         user_pred_func_str = base64.b64encode(dill.dumps(user_pred_func))
 
-        # spawn DDP workers
         self.logger.info(f"Executing DDP predict for model {self.model_id} on worker {self.worker_id}")
+        # spawn DDP workers
+        time.sleep(2)
         mp.spawn(self._execute_inner, args=(user_pred_func_str,), nprocs=self.world_size, join=True)
