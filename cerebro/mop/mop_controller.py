@@ -31,7 +31,7 @@ class MOPController:
         self.params = Params()
         self.num_epochs = None
         self.param_grid = None
-        self.sub_epoch_spec = None
+        self.minibatch_spec = None
 
         # init mop states
         self.msts = []
@@ -57,12 +57,12 @@ class MOPController:
                 full_path = os.path.join(directory, mode)
                 Path(full_path).mkdir(parents=True, exist_ok=True)
 
-    def initialize_controller(self, sub_epoch_spec, num_epochs, param_grid):
+    def initialize_controller(self, minibatch_spec, num_epochs, param_grid):
         self.num_epochs = num_epochs
         self.param_grid = param_grid
-        self.sub_epoch_spec = sub_epoch_spec
+        self.minibatch_spec = minibatch_spec
 
-        self.kvs.mop_set_spec(sub_epoch_spec)
+        self.kvs.mop_set_spec(minibatch_spec)
         self.logger.info("Saved MOP spec on KeyValueStore")
 
         # scale MOP workers
@@ -196,7 +196,7 @@ class MOPController:
 
     def create_model_components(self):
         for model_id, hyperparams in enumerate(self.msts):
-            model_object = self.sub_epoch_spec.create_model_components(hyperparams)
+            model_object = self.minibatch_spec.create_model_components(hyperparams)
             model_object_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(str(model_id)))
             Path(os.path.dirname(model_object_path)).mkdir(parents=True, exist_ok=True)
@@ -469,9 +469,9 @@ class MOPController:
         epoch_progress = tqdm_notebook(total=self.num_epochs, desc='Epochs', position=0, leave=True)
         print("Beginning model scheduling...")
         print("You can monitor your models on the Tensorboard Dashboard")
-        for i in range(num_epochs):
-            print("EPOCH: {}".format(i + 1))
-            self.logger.info("EPOCH: {}".format(i + 1))
+        for epoch in range(1, num_epochs + 1):
+            print("EPOCH: {}".format(epoch))
+            self.logger.info("EPOCH: {}".format(epoch))
             self.init_epoch()
-            self.scheduler(i)
+            self.scheduler(epoch)
             epoch_progress.update(1)
