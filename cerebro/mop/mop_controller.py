@@ -314,7 +314,6 @@ class MOPController:
         n_workers = self.num_workers
         models_to_build = set(range(self.num_models))
 
-        self.logger.info("Beginning model scheduling")
         model_progresses = {m: tqdm_notebook(total=n_workers, desc='Model ' + str(m), position=0, leave=False) for m in range(len(models_to_build))}
 
         while models_to_build:
@@ -458,7 +457,7 @@ class MOPController:
         self.msts = self.find_combinations()
 
         # create models and optimizers
-        print("Creating models...")
+        print("Creating models")
         self.create_model_components()
 
         # skipping Sampling as only DDP is enabled
@@ -466,11 +465,13 @@ class MOPController:
         self.skipped_sampler()
 
         print("\n")
-        epoch_progress = tqdm_notebook(total=self.num_epochs, desc='Epochs', position=0, leave=True)
-        print("Beginning model scheduling...")
         print("You can monitor your models on the Tensorboard Dashboard")
+        print("Beginning model scheduling \n")
+        self.logger.info("Beginning model scheduling")
+        epoch_progress = tqdm_notebook(total=self.num_epochs, desc='Epochs', position=0, leave=True)
+        print("\n")
+
         for epoch in range(1, num_epochs + 1):
-            print("EPOCH: {}".format(epoch))
             self.logger.info("EPOCH: {}".format(epoch))
             self.init_epoch()
             self.scheduler(epoch)
