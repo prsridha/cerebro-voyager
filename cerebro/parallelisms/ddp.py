@@ -76,18 +76,9 @@ class DDPExecutor(Parallelism):
         self.logger.info("Initialized DDP Executor with model ")
 
     def save_local_metrics(self, rank, metrics_list, user_metrics_func):
-        from pprint import pprint
-        if rank == 0:
-            print("METRICS LIST - ")
-            pprint(metrics_list)
-
         # group-by on key
         df = pd.DataFrame(metrics_list)
         grouped_metrics = df.to_dict(orient='list')
-
-        if rank == 0:
-            print("GROUPED METRICS - ")
-            pprint(grouped_metrics)
 
         # convert to tensors
         for key in grouped_metrics:
@@ -110,15 +101,11 @@ class DDPExecutor(Parallelism):
                 self.logger.info(f"Saved model {self.model_id}'s train metrics to file and tensorboard")
             elif self.mode == "val":
                 reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
-                if rank == 0:
-                    print("REDUCED METRICS - ")
-                    pprint(reduced_metrics)
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
                 SaveMetrics.save_to_tensorboard(result, self.mode, self.model_id, self.epoch)
                 self.logger.info(f"Saved model {self.model_id}'s val metrics to tensorboard")
             elif self.mode == "test":
                 reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
-                # run through user's metrics aggregator
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
                 output_filename = "test_output_{}.csv".format(self.model_id)
                 SaveMetrics.save_to_file(result, self.mode, output_filename)
@@ -208,7 +195,6 @@ class DDPExecutor(Parallelism):
                 metrics = user_func(updated_obj, minibatch, self.hyperparams, device)
                 minibatch_metrics.append(metrics)
 
-            minibatch_metrics = minibatch_metrics * 3
             self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
 
         elif self.mode == "test":
