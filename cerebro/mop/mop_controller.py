@@ -162,9 +162,6 @@ class MOPController:
             download_progress = tqdm_notebook(total=len(files), desc="Downloading Models", position=0, leave=True)
 
             for f in files:
-                # print("GOT FILE - ", f)
-                # print("FROM PATH - ", f)
-                # print("TO PATH - ", local_path)
                 file_io.download(checkpoint_path, f, self.params.mop["models_dir"])
                 download_progress.update(1)
 
