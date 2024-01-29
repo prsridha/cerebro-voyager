@@ -113,14 +113,11 @@ class Experiment:
         # set seed value in KVS
         self.kvs.set_seed(seed)
 
-        if not self.params.mop["models_dir"]:
-            self.etl.initialize_controller(etl_spec, fraction)
-            self.etl.run_etl()
+        self.etl.initialize_controller(etl_spec, fraction)
+        self.etl.run_etl()
 
-            print("ETL complete")
-            self.etl.exit_etl()
-        else:
-            print("Skipping ETL since models are already present")
+        print("ETL complete")
+        self.etl.exit_etl()
 
     def run_fit(self, sub_epoch_spec, param_grid, num_epochs, seed=1):
         # set seed value in KVS
