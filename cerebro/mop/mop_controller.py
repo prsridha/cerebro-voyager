@@ -161,6 +161,8 @@ class MOPController:
             files = file_io.list_files(self.params.mop["models_dir"])
             download_progress = tqdm_notebook(total=len(files), desc="Download Models", position=0, leave=True)
 
+            print("local_models_path", local_models_path)
+
             for f in files:
                 remote_path = os.path.join(self.params.mop["models_dir"], f)
                 local_path = os.path.join(local_models_path, f.split(".")[0])
