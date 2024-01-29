@@ -69,10 +69,6 @@ class ETLController:
         self.etl_spec = etl_spec
         self.fraction = fraction
 
-        # if models_dir is present, skip ETL
-        if self.params.mop["models_dir"]:
-            return
-
         if self.etl_spec:
             # save functions on KVS
             self.kvs.etl_set_spec(self.etl_spec)
@@ -305,12 +301,6 @@ class ETLController:
                 print(f"Error deleting {file}: {e}")
 
     def run_etl(self):
-        # if models_dir is present, skip ETL
-        if self.params.mop["models_dir"]:
-            print("Skipping ETL since models are already present")
-            self.logger.info("Skipping ETL, detected models_dir in params")
-            return
-
         # check which tasks are given in the dataset locators
         etl_dir_present = self.params.etl["etl_dir"] is not None
         etl_mode_present = {
