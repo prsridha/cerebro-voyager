@@ -201,7 +201,8 @@ class CerebroWorker:
                     self.train_model(d["model_id"], d["epoch"], d["is_last_worker"])
                 elif task == kvs_constants.MOP_TASK_TEST:
                     self.logger.info("Received task - Test in worker {}".format(self.worker_id))
-                    pass
+                    model_tag, batch_size = self.kvs.mop_get_test_params()
+                    self.test_model(model_tag, batch_size)
                 elif task == kvs_constants.MOP_TASK_PREDICT:
                     self.logger.info("Received task - Inference in worker {}".format(self.worker_id))
                     pass

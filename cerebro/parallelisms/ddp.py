@@ -248,19 +248,9 @@ class DDPExecutor(Parallelism):
 
         # spawn DDP workers
         self.logger.info(f"Executing DDP train for model {self.model_id} on worker {self.worker_id}")
-
-        # one free retry
-        try:
-            time.sleep(2)
-            mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
-        except Exception as e:
-            self.logger.error(f"Error occurred in DDP train function for model {self.model_id} on worker {self.worker_id}")
-            self.logger.error(str(e))
-            self.logger.info("Retrying DDP train function")
-            mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size,
-                     join=True)
-        finally:
-            self.logger.info("Completed DDP train function")
+        time.sleep(2)
+        mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        self.logger.info("Completed DDP train function")
 
     def execute_val(self, minibatch_spec, model_id):
         # get val and metrics_agg functions
@@ -272,17 +262,9 @@ class DDPExecutor(Parallelism):
 
         # spawn DDP workers
         self.logger.info(f"Executing DDP val for model {self.model_id} on worker {self.worker_id}")
-        # one free retry
-        try:
-            time.sleep(2)
-            mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
-        except Exception as e:
-            self.logger.error(f"Error occurred in DDP val function for model {self.model_id} on worker {self.worker_id}")
-            self.logger.error(str(e))
-            self.logger.info("Retrying DDP val function")
-            mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
-        finally:
-            self.logger.info("Completed DDP val function")
+        time.sleep(2)
+        mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        self.logger.info("Completed DDP val function")
 
     def execute_test(self, minibatch_spec):
         # get val and metrics_agg functions
@@ -291,10 +273,11 @@ class DDPExecutor(Parallelism):
         user_test_func_str = base64.b64encode(dill.dumps(user_test_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
 
-        self.logger.info(f"Executing DDP test for model {self.model_id} on worker {self.worker_id}")
         # spawn DDP workers
+        self.logger.info(f"Executing DDP test for model {self.model_id} on worker {self.worker_id}")
         time.sleep(2)
         mp.spawn(self._execute_inner, args=(user_test_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
+        self.logger.info("Completed DDP test function")
 
     def execute_predict(self, minibatch_spec):
         # get predict function
