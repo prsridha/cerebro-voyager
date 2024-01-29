@@ -69,6 +69,12 @@ class ETLController:
         self.etl_spec = etl_spec
         self.fraction = fraction
 
+        # if models_dir is present, skip ETL
+        if self.params.mop["models_dir"]:
+            print("Skipping ETL since models are already present")
+            self.logger.info("Skipping ETL, detected models_dir in params")
+            return
+
         if self.etl_spec:
             # save functions on KVS
             self.kvs.etl_set_spec(self.etl_spec)
