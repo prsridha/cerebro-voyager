@@ -156,19 +156,19 @@ class MOPController:
 
     def download_models(self):
         if self.params.mop["models_dir"]:
-            downloaded_models_path = self.params.mop["checkpoint_storage_path"]
+            local_models_path = self.params.mop["checkpoint_storage_path"]
             file_io = VoyagerIO()
             files = file_io.list_files(self.params.mop["models_dir"])
             download_progress = tqdm_notebook(total=len(files), desc="Download Models", position=0, leave=True)
 
             for f in files:
-                prefix = os.path.join(self.params.mop["models_dir"], f)
-                download_path = os.path.join(downloaded_models_path, f.split(".")[0])
+                remote_path = os.path.join(self.params.mop["models_dir"], f)
+                local_path = os.path.join(local_models_path, f.split(".")[0])
                 print("GOT FILE - ", f)
-                print("FROM PATH - ", download_path)
-                print("TO PATH - ", prefix)
-                Path(os.path.dirname(download_path)).mkdir(parents=True, exist_ok=True)
-                file_io.download(download_path, prefix, self.params.mop["models_dir"])
+                print("FROM PATH - ", remote_path)
+                print("TO PATH - ", local_path)
+                Path(os.path.dirname(local_path)).mkdir(parents=True, exist_ok=True)
+                file_io.download(local_path, remote_path, self.params.mop["models_dir"])
                 download_progress.update(1)
 
             download_progress.close()
