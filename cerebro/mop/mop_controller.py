@@ -45,8 +45,9 @@ class MOPController:
         self.username = os.environ['USERNAME']
         config.load_kube_config()
         v1 = client.CoreV1Api()
-        cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
-        self.num_workers = json.loads(cm1.data["data"])["num_workers"]
+        cerebro_info = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
+        self.num_workers = json.loads(cerebro_info.data["data"])["num_workers"]
+        self.user_ids = (cerebro_info["uid"], cerebro_info["gid"])
 
         # save sub-epoch func in KVS
         self.kvs = KeyValueStore()
@@ -115,7 +116,6 @@ class MOPController:
     def save_artifacts(self):
         dt_version = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
         base_dir = os.path.join(self.params.mop["output_dir"], "artifact_" + dt_version)
-        print("Created save directory in S3")
 
         # save checkpoints
         progress = tqdm_notebook(total=3, desc="Save Metrics", position=0, leave=True)
@@ -124,7 +124,7 @@ class MOPController:
         chckpt_dir = os.path.join(base_dir, "checkpoints")
         Path(chckpt_dir).mkdir(parents=True, exist_ok=True)
         from_path = self.params.mop["checkpoint_storage_path"]
-        file_io.upload(from_path, chckpt_dir)
+        file_io.upload(from_path, chckpt_dir, exclude_prefix=from_path)
         progress.update(1)
         print("Saved model checkpoints")
 
@@ -132,14 +132,22 @@ class MOPController:
         metrics_dir = os.path.join(base_dir, "metrics")
         Path(metrics_dir).mkdir(parents=True, exist_ok=True)
         from_path = os.path.join(self.params.mop["metrics_storage_path"]["tensorboard"])
-        file_io.upload(from_path, metrics_dir)
+        exclude_prefix = Path(from_path).parent.absolute()
+        file_io.upload(from_path, metrics_dir, exclude_prefix=exclude_prefix)
         progress.update(1)
         from_path = os.path.join(self.params.mop["metrics_storage_path"]["user_metrics"])
-        file_io.upload(from_path, metrics_dir)
+        file_io.upload(from_path, metrics_dir, exclude_prefix=exclude_prefix)
         progress.update(1)
         print("Saved model building metrics")
 
-        print("Saved metrics at {}".format(base_dir))
+        # change ownership to user
+        uid, gid = self.user_ids
+        ownership_cmd = "chown -R {uid}:{gid} {dir_path}".format(
+            uid=uid, gid=gid, dir_path=base_dir
+        )
+        os.system(ownership_cmd)
+
+        print("Saved experiment artifacts at {}".format(base_dir))
 
     def download_models(self):
         if self.params.mop["models_dir"]:
@@ -399,12 +407,6 @@ class MOPController:
                 time.sleep(1)
             if all(all_complete):
                 break
-
-        # combine output files and save
-        combined_filename = os.path.join(output_dir, output_filename)
-        combined_df = pd.concat([pd.read_json(file) for file in os.listdir(output_dir) if file.startswith("test_output_")], ignore_index=True)
-        mean_df = combined_df.mean().to_frame().T
-        mean_df.to_json(combined_filename, orient='records')
 
         return True
 

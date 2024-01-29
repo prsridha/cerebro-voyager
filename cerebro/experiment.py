@@ -119,7 +119,7 @@ class Experiment:
         print("ETL complete")
         self.etl.exit_etl()
 
-    def run_fit(self, sub_epoch_spec, param_grid, num_epochs, seed=1, save_artifacts=True):
+    def run_fit(self, sub_epoch_spec, param_grid, num_epochs, seed=1):
         # set seed value in KVS
         self.kvs.set_seed(seed)
 
@@ -135,8 +135,8 @@ class Experiment:
         self.mop.grid_search()
         self.logger.info("Model selection complete")
 
-        # save metrics to S3
-        if save_artifacts:
+        # save metrics
+        if self.params.mop["output_dir"]:
             self.mop.save_artifacts()
 
     def run_test(self, sub_epoch_spec, model_tag, batch_size, output_filename):
