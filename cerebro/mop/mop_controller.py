@@ -45,8 +45,9 @@ class MOPController:
         self.username = os.environ['USERNAME']
         config.load_kube_config()
         v1 = client.CoreV1Api()
-        cerebro_info = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
-        self.num_workers = json.loads(cerebro_info.data["data"])["num_workers"]
+        cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(self.username), namespace=self.namespace)
+        cerebro_info = json.loads(cm1.data["data"])
+        self.num_workers = cerebro_info["num_workers"]
         self.user_ids = (cerebro_info["uid"], cerebro_info["gid"])
 
         # save sub-epoch func in KVS
