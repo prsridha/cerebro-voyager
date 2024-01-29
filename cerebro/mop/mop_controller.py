@@ -141,6 +141,9 @@ class MOPController:
         progress.update(1)
         print("Saved model building metrics")
 
+        # close progress bar
+        progress.close()
+
         # change ownership to user
         uid, gid = self.user_ids
         ownership_cmd = "chown -R {uid}:{gid} {dir_path}".format(
