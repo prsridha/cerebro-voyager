@@ -164,6 +164,9 @@ class MOPController:
             for f in files:
                 prefix = os.path.join(self.params.mop["models_dir"], f)
                 download_path = os.path.join(downloaded_models_path, f.split(".")[0])
+                print("GOT FILE - ", f)
+                print("FROM PATH - ", download_path)
+                print("TO PATH - ", prefix)
                 Path(os.path.dirname(download_path)).mkdir(parents=True, exist_ok=True)
                 file_io.download(download_path, prefix, self.params.mop["models_dir"])
                 download_progress.update(1)
