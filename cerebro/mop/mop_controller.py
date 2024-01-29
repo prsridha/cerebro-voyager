@@ -159,7 +159,7 @@ class MOPController:
             checkpoint_path = self.params.mop["checkpoint_storage_path"]
             file_io = VoyagerIO()
             files = file_io.list_files(self.params.mop["models_dir"])
-            download_progress = tqdm_notebook(total=len(files), desc="Download Models", position=0, leave=True)
+            download_progress = tqdm_notebook(total=len(files), desc="Downloading Models", position=0, leave=True)
 
             for f in files:
                 # print("GOT FILE - ", f)
