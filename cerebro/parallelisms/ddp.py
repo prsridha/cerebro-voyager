@@ -205,6 +205,7 @@ class DDPExecutor(Parallelism):
                 output = user_func(updated_obj, minibatch, self.hyperparams, device)
                 test_outputs.append(output)
 
+            print("GOT TEST OUTPUTS - ", test_outputs)
             self.save_local_metrics(rank, test_outputs, user_metrics_func)
 
         elif self.mode == "predict":
