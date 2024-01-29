@@ -133,7 +133,7 @@ class MOPController:
         metrics_dir = os.path.join(base_dir, "metrics")
         Path(metrics_dir).mkdir(parents=True, exist_ok=True)
         from_path = os.path.join(self.params.mop["metrics_storage_path"]["tensorboard"])
-        exclude_prefix = Path(from_path).parent.absolute()
+        exclude_prefix = os.path.dirname(from_path)
         file_io.upload(from_path, metrics_dir, exclude_prefix=exclude_prefix)
         progress.update(1)
         from_path = os.path.join(self.params.mop["metrics_storage_path"]["user_metrics"])
