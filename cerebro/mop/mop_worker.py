@@ -129,8 +129,7 @@ class CerebroWorker:
             model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_tag),
                                                  "model_object_{}.pt".format(model_tag))
         else:
-            model_tag_dir = model_tag.split(".")[0]
-            model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], model_tag_dir, model_tag)
+            model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], model_tag)
 
         # default parallelism to DDP
         p_name = "DDP"

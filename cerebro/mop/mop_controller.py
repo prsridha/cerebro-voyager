@@ -168,6 +168,8 @@ class MOPController:
                 file_io.download(download_path, prefix, self.params.mop["models_dir"])
                 download_progress.update(1)
 
+            download_progress.close()
+
     def get_runnable_model(self, worker_id):
         # get seed value
         seed = self.kvs.get_seed()
