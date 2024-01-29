@@ -143,8 +143,8 @@ class Experiment:
         if sub_epoch_spec:
             self.mop.initialize_controller(sub_epoch_spec, 0, None)
 
-        if self.params.mop["models_dir"]:
-            self.mop.download_models()
+        # if self.params.mop["models_dir"]:
+        #     self.mop.download_models()
 
         self.mop.testing(model_tag, batch_size, output_filename)
 
