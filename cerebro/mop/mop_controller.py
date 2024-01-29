@@ -99,7 +99,6 @@ class MOPController:
 
 
         # scale up MOP workers
-        print("Scaling MOP workers to {}".format(num_workers))
         v1 = client.AppsV1Api()
         statefulset = v1.read_namespaced_stateful_set(name=f"{self.username}-{app_name}", namespace=self.namespace)
         statefulset.spec.replicas = num_workers
