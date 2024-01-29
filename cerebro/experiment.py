@@ -139,14 +139,14 @@ class Experiment:
         if self.params.mop["output_dir"]:
             self.mop.save_artifacts()
 
-    def run_test(self, sub_epoch_spec, model_tag, batch_size, output_filename):
+    def run_test(self, sub_epoch_spec, model_tag, batch_size):
         if sub_epoch_spec:
             self.mop.initialize_controller(sub_epoch_spec, 0, None)
 
         # if self.params.mop["models_dir"]:
         #     self.mop.download_models()
 
-        self.mop.testing(model_tag, batch_size, output_filename)
+        self.mop.testing(model_tag, batch_size)
 
     def run_predict(self, sub_epoch_spec, model_tag, batch_size, output_filename):
         if sub_epoch_spec:

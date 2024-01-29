@@ -140,9 +140,10 @@ class CerebroWorker:
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
 
         # run test via parallelism
+        model_tag = str(Path(model_tag).stem)
         output_path = os.path.join(self.params.mop["test_output_path"])
         Path(os.path.dirname(output_path)).mkdir(exist_ok=True)
-        parallelism.execute_test(self.minibatch_spec)
+        parallelism.execute_test(self.minibatch_spec, model_tag)
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)

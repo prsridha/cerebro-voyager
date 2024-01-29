@@ -20,8 +20,8 @@ class Parallelism:
     def execute_val(self, minibatch_spec, model_id):
         pass
 
-    def execute_test(self, minibatch_spec):
+    def execute_test(self, minibatch_spec, model_tag):
         pass
 
-    def execute_predict(self, minibatch_spec):
+    def execute_predict(self, minibatch_spec, model_tag):
         pass

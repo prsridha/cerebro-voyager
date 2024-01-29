@@ -8,6 +8,7 @@ import itertools
 import pandas as pd
 from pathlib import Path
 from copy import deepcopy
+from pprint import pprint
 from datetime import datetime
 from IPython.display import display
 from kubernetes import client, config
@@ -382,7 +383,7 @@ class MOPController:
         for m in model_progresses:
             model_progresses[m].close()
 
-    def testing(self, model_tag, batch_size, output_filename):
+    def testing(self, model_tag, batch_size):
         output_dir = self.params.mop["test_output_path"]
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
@@ -411,6 +412,15 @@ class MOPController:
                 time.sleep(1)
             if all(all_complete):
                 break
+
+        # aggregate results
+        agg_df = pd.DataFrame()
+        for worker_id in range(self.num_workers):
+            output_path = os.path.join(self.params.mop["test_output_path"], f"{Path(model_tag).stem}_{worker_id}.csv")
+            df = pd.read_csv(output_path, header=0)
+            agg_df = agg_df.add(df)
+        agg_values = agg_df/self.num_workers
+        print(agg_values)
 
         return True
 

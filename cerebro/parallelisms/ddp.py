@@ -54,6 +54,7 @@ class DDPExecutor(Parallelism):
         self.seed = seed
         self.epoch = epoch
         self.model_id = None
+        self.model_tag = None
         self.worker_id = worker_id
         self.sample_size = sample_size
         self.hyperparams = model_config
@@ -104,12 +105,12 @@ class DDPExecutor(Parallelism):
                 reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
                 SaveMetrics.save_to_tensorboard(result, self.mode, self.model_id, self.epoch)
-                SaveMetrics.save_to_file(result, self.mode, "{}.csv".format(self.model_id))
+                SaveMetrics.save_to_file(result, self.mode, f"{self.model_tag}_{self.worker_id}.csv")
                 self.logger.info(f"Saved model {self.model_id}'s val metrics to tensorboard")
             elif self.mode == "test":
                 reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
-                output_filename = "test_output_{}.csv".format(self.model_id)
+                output_filename = "test_output_{}.csv".format(self.model_tag)
                 SaveMetrics.save_to_file(result, self.mode, output_filename)
                 self.logger.info(f"Saved model {self.model_id}'s test metrics to file")
 
@@ -266,9 +267,10 @@ class DDPExecutor(Parallelism):
         mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
         self.logger.info("Completed DDP val function")
 
-    def execute_test(self, minibatch_spec):
+    def execute_test(self, minibatch_spec, model_tag):
         # get val and metrics_agg functions
         self.mode = "test"
+        self.model_tag = model_tag
         user_test_func, user_metrics_func = minibatch_spec.val_test, minibatch_spec.metrics_agg
         user_test_func_str = base64.b64encode(dill.dumps(user_test_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
@@ -279,9 +281,10 @@ class DDPExecutor(Parallelism):
         mp.spawn(self._execute_inner, args=(user_test_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
         self.logger.info("Completed DDP test function")
 
-    def execute_predict(self, minibatch_spec):
+    def execute_predict(self, minibatch_spec, model_tag):
         # get predict function
         self.mode = "predict"
+        self.model_tag = model_tag
         user_pred_func = minibatch_spec.predict
         user_pred_func_str = base64.b64encode(dill.dumps(user_pred_func))
 
