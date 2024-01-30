@@ -105,12 +105,12 @@ class DDPExecutor(Parallelism):
                 reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
                 SaveMetrics.save_to_tensorboard(result, self.mode, self.model_id, self.epoch)
-                SaveMetrics.save_to_file(result, self.mode, f"{self.model_tag}_{self.worker_id}.csv")
+                SaveMetrics.save_to_file(result, self.mode, "{}.csv".format(self.model_id))
                 self.logger.info(f"Saved model {self.model_id}'s val metrics to tensorboard")
             elif self.mode == "test":
                 reduced_metrics = {key: tensor.tolist() for key, tensor in grouped_metrics.items()}
                 result = user_metrics_func(self.mode, self.hyperparams, reduced_metrics)
-                output_filename = "test_output_{}.csv".format(self.model_tag)
+                output_filename = f"test_output_{self.model_tag}_{self.worker_id}.csv"
                 SaveMetrics.save_to_file(result, self.mode, output_filename)
                 self.logger.info(f"Saved model {self.model_id}'s test metrics to file")
 
