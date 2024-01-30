@@ -417,9 +417,9 @@ class MOPController:
         for worker_id in range(self.num_workers):
             output_path = os.path.join(self.params.mop["test_output_path"], f"test_output_{Path(model_tag).stem}_{worker_id}.csv")
             df = pd.read_csv(output_path, header=0)
-            agg_df = agg_df.add(df)
-        agg_values = agg_df/self.num_workers
-        print(agg_values)
+            agg_df = pd.concat([agg_df, df], ignore_index=True)
+        reduced_df = agg_df.mean()
+        print(reduced_df)
 
         return True
 
