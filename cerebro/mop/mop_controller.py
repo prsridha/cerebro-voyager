@@ -407,7 +407,7 @@ class MOPController:
                 status = self.kvs.mop_get_worker_status(w)
                 completed = status == kvs_constants.PROGRESS_COMPLETE
                 all_complete.append(completed)
-            progress.n = sum(all_complete)
+            progress.update(sum(all_complete) - progress.n)
             time.sleep(1)
             if all(all_complete):
                 break
