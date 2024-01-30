@@ -141,8 +141,6 @@ class CerebroWorker:
 
         # run test via parallelism
         model_tag = str(Path(model_tag).stem)
-        output_path = os.path.join(self.params.mop["test_output_path"])
-        Path(os.path.dirname(output_path)).mkdir(exist_ok=True)
         parallelism.execute_test(self.minibatch_spec, model_tag)
 
         # set worker status as complete
