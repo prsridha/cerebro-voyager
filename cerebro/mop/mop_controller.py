@@ -419,7 +419,7 @@ class MOPController:
             df = pd.read_csv(output_path, header=0)
             agg_df = pd.concat([agg_df, df], ignore_index=True)
         reduced_df = agg_df.mean()
-        print(reduced_df)
+        display(reduced_df)
 
         return True
 
