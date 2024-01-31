@@ -55,7 +55,7 @@ class Experiment:
         self.mop = None
         self.num_epochs = None
         self.param_grid = None
-        self.sub_epoch_spec = None
+        self.minibatch_spec = None
         self.kvs = KeyValueStore(init_tables=True)
 
         # load values from cerebro-info configmap
@@ -119,16 +119,16 @@ class Experiment:
         print("ETL complete")
         self.etl.exit_etl()
 
-    def run_fit(self, sub_epoch_spec, param_grid, num_epochs, seed=1):
+    def run_fit(self, minibatch_spec, param_grid, num_epochs, seed=1):
         # set seed value in KVS
         self.kvs.set_seed(seed)
 
         # save values in class variables
         self.num_epochs = num_epochs
         self.param_grid = param_grid
-        self.sub_epoch_spec = sub_epoch_spec
+        self.minibatch_spec = minibatch_spec
 
-        self.mop.initialize_controller(sub_epoch_spec, num_epochs, param_grid)
+        self.mop.initialize_controller(minibatch_spec, num_epochs, param_grid)
 
         # start grid search
         self.logger.info("Starting grid search...")
@@ -139,18 +139,18 @@ class Experiment:
         if self.params.mop["output_dir"]:
             self.mop.save_artifacts()
 
-    def run_test(self, sub_epoch_spec, model_tag, batch_size):
-        if sub_epoch_spec:
-            self.mop.initialize_controller(sub_epoch_spec, 0, None)
+    def run_test(self, minibatch_spec, model_tag, batch_size):
+        if minibatch_spec:
+            self.mop.initialize_controller(minibatch_spec, 0, None)
 
         # if self.params.mop["models_dir"]:
         #     self.mop.download_models()
 
         self.mop.testing(model_tag, batch_size)
 
-    def run_predict(self, sub_epoch_spec, model_tag, batch_size, output_filename):
-        if sub_epoch_spec:
-            self.mop.initialize_controller(sub_epoch_spec, 0, None, sub_epoch_spec)
+    def run_predict(self, minibatch_spec, model_tag, batch_size, output_filename):
+        if minibatch_spec:
+            self.mop.initialize_controller(minibatch_spec, 0, None)
 
         if self.params.mop["models_dir"]:
             self.mop.download_models()
