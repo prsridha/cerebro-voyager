@@ -10,9 +10,9 @@ from pathlib import Path
 from copy import deepcopy
 from pprint import pprint
 from datetime import datetime
-from IPython.display import display
 from kubernetes import client, config
 from tqdm.notebook import tqdm_notebook
+from IPython.display import display, FileLink
 
 from cerebro.util.params import Params
 import cerebro.kvs.constants as kvs_constants
@@ -424,7 +424,7 @@ class MOPController:
         return True
 
     def prediction(self, model_tag, batch_size):
-        output_dir = self.params.mop["prediction_output_path"]
+        output_dir = self.params.mop["predict_output_path"]
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
         # update KVS
@@ -470,6 +470,9 @@ class MOPController:
             combined_df = pd.concat([combined_df, df], ignore_index=True)
             os.remove(predict_output_worker_file)
         combined_df.to_csv(combined_output_file)
+
+        # display download link to combined file
+        display(FileLink(combined_output_file))
 
         return True
 
