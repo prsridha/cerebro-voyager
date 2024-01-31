@@ -423,7 +423,7 @@ class MOPController:
 
         return True
 
-    def prediction(self, model_tag, batch_size, output_filename):
+    def prediction(self, model_tag, batch_size):
         output_dir = self.params.mop["prediction_output_path"]
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
@@ -458,12 +458,18 @@ class MOPController:
             if all(all_complete):
                 break
 
-        # combine output files
-        combined_filename = os.path.join(output_dir, output_filename)
-        combined_data = pd.concat(
-            (pd.read_csv(file) for file in sorted(os.listdir(output_dir)) if file.startswith("prediction_output_")),
-            ignore_index=True)
-        combined_data.to_csv(combined_filename, index=False)
+        # combine inference output files from all workers
+        combined_df = pd.DataFrame()
+        model_tag_stem = str(Path(model_tag).stem)
+        combined_output_file = f"predict_output_{model_tag_stem}.csv"
+        predict_output_path = self.params.mop["predict_output"]
+        for worker_id in range(self.num_workers):
+            predict_output_worker_file = os.path.join(predict_output_path,
+                                                     f"predict_output_{model_tag_stem}_{worker_id}.csv")
+            df = pd.read_csv(predict_output_worker_file, header=0)
+            combined_df = pd.concat([combined_df, df], ignore_index=True)
+            os.remove(predict_output_worker_file)
+        combined_df.to_csv(combined_output_file)
 
         return True
 

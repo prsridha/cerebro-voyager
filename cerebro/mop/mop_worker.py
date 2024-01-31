@@ -1,5 +1,6 @@
 import os
 import gc
+import glob
 import json
 import time
 from pathlib import Path
@@ -140,8 +141,8 @@ class CerebroWorker:
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
 
         # run test via parallelism
-        model_tag = str(Path(model_tag).stem)
-        parallelism.execute_test(self.minibatch_spec, model_tag)
+        model_tag_stem = str(Path(model_tag).stem)
+        parallelism.execute_test(self.minibatch_spec, model_tag_stem)
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
@@ -164,9 +165,23 @@ class CerebroWorker:
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
 
         # run test via parallelism
-        output_path = os.path.join(self.params.mop["predict_output_path"])
-        Path(os.path.dirname(output_path)).mkdir(exist_ok=True)
-        parallelism.execute_predict(self.minibatch_spec)
+        model_tag_stem = str(Path(model_tag).stem)
+        predict_output_path = self.params.mop["predict_output_path"]
+        Path(os.path.dirname(predict_output_path)).mkdir(exist_ok=True)
+        parallelism.execute_predict(self.minibatch_spec, model_tag_stem)
+
+        # combine inference files of all ranks
+        predict_output_rank_files = os.path.join(predict_output_path,
+                                                 f"predict_output_{model_tag_stem}_{self.worker_id}_*.csv")
+        combined_output_file = os.path.join(predict_output_path,
+                                            f"predict_output_{model_tag_stem}_{self.worker_id}.csv")
+        files = glob.glob(predict_output_rank_files)
+        combined_df = pd.DataFrame()
+        for file in files:
+            df = pd.read_csv(file, header=0)
+            combined_df = pd.concat([combined_df, df], ignore_index=True)
+            os.remove(file)
+        combined_df.to_csv(combined_output_file)
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
@@ -203,7 +218,8 @@ class CerebroWorker:
                     self.test_model(model_tag, batch_size)
                 elif task == kvs_constants.MOP_TASK_PREDICT:
                     self.logger.info("Received task - Inference in worker {}".format(self.worker_id))
-                    pass
+                    model_tag, batch_size = self.kvs.mop_get_predict_params()
+                    self.predict_model(model_tag, batch_size)
                 elif task == kvs_constants.PROGRESS_COMPLETE:
                     done = True
                     self.logger.info("MOP tasks complete on worker{}".format(self.worker_id))

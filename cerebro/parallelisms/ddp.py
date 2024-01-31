@@ -215,10 +215,10 @@ class DDPExecutor(Parallelism):
                 output["row_id"] = minibatch[3]
                 predict_outputs.append(output)
 
-            if rank == 0:
-                output_filename = os.path.join(self.predict_output_path, "predict_output_{}.csv".format(self.model_id))
-                output_df = pd.DataFrame(predict_outputs)
-                output_df.to_csv(output_filename)
+            # save inference outputs of each rank
+            output_filename = os.path.join(self.predict_output_path, f"predict_output_{self.model_tag}_{self.worker_id}_{rank}.csv")
+            output_df = pd.DataFrame(predict_outputs)
+            output_df.to_csv(output_filename)
 
         print("Completed DDP event")
 
@@ -288,7 +288,7 @@ class DDPExecutor(Parallelism):
         user_pred_func = minibatch_spec.predict
         user_pred_func_str = base64.b64encode(dill.dumps(user_pred_func))
 
-        self.logger.info(f"Executing DDP predict for model {self.model_id} on worker {self.worker_id}")
+        self.logger.info(f"Executing DDP predict for model {model_tag} on worker {self.worker_id}")
         # spawn DDP workers
         time.sleep(2)
         mp.spawn(self._execute_inner, args=(user_pred_func_str,), nprocs=self.world_size, join=True)

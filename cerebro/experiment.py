@@ -148,11 +148,11 @@ class Experiment:
 
         self.mop.testing(model_tag, batch_size)
 
-    def run_predict(self, minibatch_spec, model_tag, batch_size, output_filename):
+    def run_predict(self, minibatch_spec, model_tag, batch_size):
         if minibatch_spec:
             self.mop.initialize_controller(minibatch_spec, 0, None)
 
         if self.params.mop["models_dir"]:
             self.mop.download_models()
 
-        self.mop.prediction(model_tag, batch_size, output_filename)
+        self.mop.prediction(model_tag, batch_size)
