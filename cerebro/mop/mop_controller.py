@@ -68,14 +68,16 @@ class MOPController:
         self.kvs.mop_set_spec(minibatch_spec)
         self.logger.info("Saved MOP spec on KeyValueStore")
 
+        # process misc. files
+        self.minibatch_spec.read_misc(self.params.miscellaneous["output_path"])
+
         # scale MOP workers
         scale_status = self.scale_workers(self.num_workers)
-        if scale_status:
-            id_str = kvs_constants.MOP_TASK_INITIALIZE
-            task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
-            for w in range(self.num_workers):
-                self.kvs.mop_set_task(kvs_constants.MOP_TASK_INITIALIZE, w, task_id)
-                self.logger.info("Initialized MOP workers")
+        id_str = kvs_constants.MOP_TASK_INITIALIZE
+        task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
+        for w in range(self.num_workers):
+            self.kvs.mop_set_task(kvs_constants.MOP_TASK_INITIALIZE, w, task_id)
+            self.logger.info("Initialized MOP workers")
 
     def scale_workers(self, num_workers):
         config.load_kube_config()
@@ -469,6 +471,9 @@ class MOPController:
             df = pd.read_csv(predict_output_worker_file, header=0)
             combined_df = pd.concat([combined_df, df], ignore_index=True)
             os.remove(predict_output_worker_file)
+
+        # sort based on row_id
+        combined_df.sort_values("row_id")
         combined_df.to_csv(combined_output_file)
 
         # display download link to combined file

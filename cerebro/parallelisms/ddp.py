@@ -211,14 +211,15 @@ class DDPExecutor(Parallelism):
         elif self.mode == "predict":
             predict_outputs = []
             for k, minibatch in enumerate(dataloader):
-                output = user_func(updated_obj, minibatch, self.hyperparams, device)
-                output["row_id"] = minibatch[3]
-                predict_outputs.append(output)
+                outputs, probabilities = user_func(updated_obj, minibatch, self.hyperparams, device)
+                row_ids = minibatch[1].tolist()
+                mapped_classes = [(row_ids[i], outputs[i], probabilities[i]) for i in range(len(row_ids))]
+                predict_outputs.extend(mapped_classes)
 
             # save inference outputs of each rank
             output_filename = os.path.join(self.predict_output_path, f"predict_output_{self.model_tag}_{self.worker_id}_{rank}.csv")
-            output_df = pd.DataFrame(predict_outputs)
-            output_df.to_csv(output_filename)
+            output_df = pd.DataFrame(predict_outputs, columns=["row_id", "output_class", "confidence"])
+            output_df.to_csv(output_filename, index=False)
 
         print("Completed DDP event")
 
