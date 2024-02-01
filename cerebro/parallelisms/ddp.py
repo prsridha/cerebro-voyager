@@ -237,7 +237,7 @@ class DDPExecutor(Parallelism):
         user_train_func_str = base64.b64encode(dill.dumps(minibatch_spec))
 
         # spawn DDP workers
-        time.sleep(2)
+        time.sleep(5)
         mp.spawn(self._execute_inner, args=(user_train_func_str,), nprocs=self.world_size, join=True)
 
     def execute_train(self, minibatch_spec, model_id):
@@ -250,7 +250,7 @@ class DDPExecutor(Parallelism):
 
         # spawn DDP workers
         self.logger.info(f"Executing DDP train for model {self.model_id} on worker {self.worker_id}")
-        time.sleep(2)
+        time.sleep(5)
         mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
         self.logger.info("Completed DDP train function")
 
@@ -264,7 +264,7 @@ class DDPExecutor(Parallelism):
 
         # spawn DDP workers
         self.logger.info(f"Executing DDP val for model {self.model_id} on worker {self.worker_id}")
-        time.sleep(2)
+        time.sleep(5)
         mp.spawn(self._execute_inner, args=(user_val_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
         self.logger.info("Completed DDP val function")
 
@@ -278,7 +278,7 @@ class DDPExecutor(Parallelism):
 
         # spawn DDP workers
         self.logger.info(f"Executing DDP test for model {self.model_id} on worker {self.worker_id}")
-        time.sleep(2)
+        time.sleep(5)
         mp.spawn(self._execute_inner, args=(user_test_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
         self.logger.info("Completed DDP test function")
 
@@ -291,5 +291,5 @@ class DDPExecutor(Parallelism):
 
         self.logger.info(f"Executing DDP predict for model {model_tag} on worker {self.worker_id}")
         # spawn DDP workers
-        time.sleep(2)
+        time.sleep(5)
         mp.spawn(self._execute_inner, args=(user_pred_func_str,), nprocs=self.world_size, join=True)
