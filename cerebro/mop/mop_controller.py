@@ -404,7 +404,7 @@ class MOPController:
             self.kvs.mop_set_task(kvs_constants.MOP_TASK_TEST, worker_id, task_id)
 
         # update completion progress
-        progress = tqdm_notebook(total=self.num_workers, desc="Testing Progress", position=0, leave=False)
+        progress = tqdm_notebook(total=self.num_workers, desc="Testing Progress", position=0, leave=True)
         while True:
             all_complete = []
             for w in range(self.num_workers):
@@ -449,7 +449,7 @@ class MOPController:
             self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
         # update completion progress
-        progress = tqdm_notebook(total=self.num_workers, desc="Inference Progress", position=0, leave=False)
+        progress = tqdm_notebook(total=self.num_workers, desc="Inference Progress", position=0, leave=True)
         while True:
             all_complete = []
             for w in range(self.num_workers):
