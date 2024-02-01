@@ -475,7 +475,7 @@ class MOPController:
             os.remove(predict_output_worker_file)
 
         # sort based on row_id
-        combined_df.sort_values("row_id")
+        combined_df = combined_df.sort_values("row_id")
         combined_df.to_csv(combined_output_file, index=False)
 
         # display download link to combined file
