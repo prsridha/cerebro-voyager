@@ -101,11 +101,10 @@ class Experiment:
         file_io = VoyagerIO()
 
         Path(self.params.miscellaneous["output_path"]).mkdir(parents=True, exist_ok=True)
-        for from_path in self.params.miscellaneous["download_paths"]:
-            filename = from_path.split("/")[-1]
-            to_path = os.path.join(self.params.miscellaneous["output_path"], filename)
-            exclude = os.path.dirname(from_path)
-            file_io.download(to_path, from_path, exclude)
+        for remote_path in self.params.miscellaneous["download_paths"]:
+            filename = os.path.basename(remote_path)
+            local_path = os.path.join(self.params.miscellaneous["output_path"], filename)
+            file_io.download(local_path, remote_path, remote_path)
 
         self.logger.info("Downloaded miscellaneous files")
 
