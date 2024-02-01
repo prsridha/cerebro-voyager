@@ -181,7 +181,7 @@ class CerebroWorker:
             df = pd.read_csv(file, header=0)
             combined_df = pd.concat([combined_df, df], ignore_index=True)
             os.remove(file)
-        combined_df.to_csv(combined_output_file)
+        combined_df.to_csv(combined_output_file, index=False)
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)

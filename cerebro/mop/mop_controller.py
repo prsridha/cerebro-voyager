@@ -476,7 +476,7 @@ class MOPController:
 
         # sort based on row_id
         combined_df.sort_values("row_id")
-        combined_df.to_csv(combined_output_file)
+        combined_df.to_csv(combined_output_file, index=False)
 
         # display download link to combined file
         display(FileLink(combined_output_file))
