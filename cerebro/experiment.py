@@ -151,7 +151,7 @@ class Experiment:
         if minibatch_spec:
             self.mop.initialize_controller(minibatch_spec, 0, None)
 
-        # if self.params.mop["models_dir"]:
-        #     self.mop.download_models()
+        if self.params.mop["models_dir"]:
+            self.mop.download_models()
 
         self.mop.prediction(model_tag, batch_size)
