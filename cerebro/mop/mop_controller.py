@@ -158,8 +158,9 @@ class MOPController:
         print("Saved experiment artifacts at {}".format(print_dir))
 
     def download_models(self):
-        if self.params.mop["models_dir"]:
-            checkpoint_path = self.params.mop["checkpoint_storage_path"]
+        # if models_dir is defined and checkpoint dir is empty - then download models from remote
+        checkpoint_path = self.params.mop["checkpoint_storage_path"]
+        if self.params.mop["models_dir"] and len(os.listdir(checkpoint_path)) == 0:
             file_io = VoyagerIO()
             files = file_io.list_files(self.params.mop["models_dir"])
             download_progress = tqdm_notebook(total=len(files), desc="Downloading Models", position=0, leave=True)
