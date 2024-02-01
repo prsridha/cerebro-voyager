@@ -413,6 +413,7 @@ class MOPController:
             progress.update(sum(all_complete) - progress.n)
             time.sleep(1)
             if all(all_complete):
+                progress.close()
                 break
 
         # aggregate results
@@ -447,25 +448,24 @@ class MOPController:
             self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
         # update completion progress
-        progress = tqdm_notebook(total=100, desc="Inference Progress", position=0, leave=False)
+        progress = tqdm_notebook(total=self.num_workers, desc="Inference Progress", position=0, leave=False)
         while True:
             all_complete = []
             for w in range(self.num_workers):
                 status = self.kvs.mop_get_worker_status(w)
                 completed = status == kvs_constants.PROGRESS_COMPLETE
-                if completed:
-                    progress.update(1)
-                    self.logger.info("Completed prediction on epoch...")
                 all_complete.append(completed)
-                time.sleep(1)
+            progress.update(sum(all_complete) - progress.n)
+            time.sleep(1)
             if all(all_complete):
+                progress.close()
                 break
 
         # combine inference output files from all workers
         combined_df = pd.DataFrame()
         model_tag_stem = str(Path(model_tag).stem)
         combined_output_file = f"predict_output_{model_tag_stem}.csv"
-        predict_output_path = self.params.mop["predict_output"]
+        predict_output_path = self.params.mop["predict_output_path"]
         for worker_id in range(self.num_workers):
             predict_output_worker_file = os.path.join(predict_output_path,
                                                      f"predict_output_{model_tag_stem}_{worker_id}.csv")
