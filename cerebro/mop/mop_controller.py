@@ -70,6 +70,7 @@ class MOPController:
 
         # process misc. files
         self.minibatch_spec.read_misc(self.params.miscellaneous["output_path"])
+        self.logger.info("read_misc function call complete in MOP Controller")
 
         # scale MOP workers
         scale_status = self.scale_workers(self.num_workers)
