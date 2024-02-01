@@ -17,7 +17,7 @@ class CoalesceDataset(Dataset):
     def __getitem__(self, idx):
         gc.collect()
 
-        row_id = idx
+        row_id = self.df["id"].iloc[idx]
         input_tensor = self.df["input_tensor"].iloc[idx]
         if "output_tensor" in self.df:
             output_tensor = self.df["output_tensor"].iloc[idx]
