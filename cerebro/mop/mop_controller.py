@@ -65,12 +65,12 @@ class MOPController:
         self.param_grid = param_grid
         self.minibatch_spec = minibatch_spec
 
-        self.kvs.mop_set_spec(minibatch_spec)
-        self.logger.info("Saved MOP spec on KeyValueStore")
-
         # process misc. files
         self.minibatch_spec.read_misc(self.params.miscellaneous["output_path"])
         self.logger.info("read_misc function call complete in MOP Controller")
+
+        self.kvs.mop_set_spec(minibatch_spec)
+        self.logger.info("Saved MOP spec on KeyValueStore")
 
         # scale MOP workers
         scale_status = self.scale_workers(self.num_workers)
