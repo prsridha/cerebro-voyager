@@ -42,7 +42,6 @@ def setup(rank, world_size):
 def clean_up():
     dist.destroy_process_group()
 
-
 class DDPExecutor(Parallelism):
     def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size=None):
         super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size)
@@ -224,10 +223,6 @@ class DDPExecutor(Parallelism):
         print("Completed DDP event")
 
         # clean up resources
-        del sampler
-        del dataloader
-        del updated_obj
-        del model_object
         gc.collect()
         clean_up()
 
