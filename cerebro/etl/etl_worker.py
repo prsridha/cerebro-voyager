@@ -1,10 +1,10 @@
 import os
 import gc
-import shutil
 import sys
 import time
 import json
 import uuid
+import traceback
 import pandas as pd
 import multiprocessing
 from pathlib import Path
@@ -85,7 +85,8 @@ class EtlProcess:
                         self.download_file(row[feature_name], file_io)
                     except Exception as e:
                         gc.collect()
-                        kvs.set_error(str(e))
+                        err_msg = str(e) + traceback.format_exc()
+                        kvs.set_error(str(err_msg))
                         return
 
             # run through user's row prep function
@@ -99,7 +100,8 @@ class EtlProcess:
                     input_tensor, output_tensor = self.etl_spec.row_prep(row, self.mode, to_path)
                     res_partition.append([row_id, input_tensor, output_tensor])
             except Exception as e:
-                kvs.set_error(str(e))
+                err_msg = str(e) + traceback.format_exc()
+                kvs.set_error(str(err_msg))
                 return
 
             # compute conditional values
