@@ -256,10 +256,11 @@ class ETLController:
                 self.logger.error("Notified of error in Controller, exiting")
                 self.logger.error(str(err))
 
+                html_alert(err)
+
                 # scale down ETL workers to 0
                 self.scale_workers(0)
 
-                html_alert(err)
                 return
 
             total = 0.0
