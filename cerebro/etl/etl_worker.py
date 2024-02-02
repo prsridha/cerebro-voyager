@@ -256,16 +256,10 @@ class ETLWorker:
             # update KVS every half second
             percentage = (sum(self.progress_dict.values()) / self.num_process) * 100
             self.kvs.etl_set_worker_progress(self.worker_id, percentage)
-            time.sleep(0.2)
+            # time.sleep(0.2)
 
         self.p.close()
         self.p.join()
-        self.progress_dict
-
-        # delete all downloaded object files
-        # self.logger.info("Deleting all {} dataset's downloaded multi-media files".format(mode))
-        # downloads_dir = self.params.etl[mode]["multimedia_download_path"]
-        # shutil.rmtree(downloads_dir)
 
         # combine all Pickle files into a single file for train, test and predict modes
         if mode != "val":
