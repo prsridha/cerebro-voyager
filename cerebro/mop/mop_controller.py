@@ -12,7 +12,7 @@ from pprint import pprint
 from datetime import datetime
 from kubernetes import client, config
 from tqdm.notebook import tqdm_notebook
-from IPython.display import display, FileLink
+from IPython.display import display, FileLink, HTML
 
 from cerebro.util.params import Params
 import cerebro.kvs.constants as kvs_constants
@@ -421,12 +421,12 @@ class MOPController:
         agg_df = pd.DataFrame()
         for worker_id in range(self.num_workers):
             output_path = os.path.join(self.params.mop["test_output_path"], f"test_output_{Path(model_tag).stem}_{worker_id}.csv")
-            df = pd.read_csv(output_path, header=0, names=["Metrics", "Values"])
+            df = pd.read_csv(output_path, header=0)
             agg_df = pd.concat([agg_df, df], ignore_index=True)
         reduced_df = agg_df.mean().to_frame()
 
         # display metrics on the notebook
-        display(reduced_df)
+        HTML(reduced_df.to_html(index=False))
 
         return True
 
