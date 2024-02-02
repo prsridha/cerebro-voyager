@@ -423,7 +423,9 @@ class MOPController:
             output_path = os.path.join(self.params.mop["test_output_path"], f"test_output_{Path(model_tag).stem}_{worker_id}.csv")
             df = pd.read_csv(output_path, header=0)
             agg_df = pd.concat([agg_df, df], ignore_index=True)
-        reduced_df = agg_df.mean()
+        reduced_df = agg_df.mean().to_frame()
+
+        # display metrics on the notebook
         display(reduced_df)
 
         return True
