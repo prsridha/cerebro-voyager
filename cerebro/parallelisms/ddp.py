@@ -223,6 +223,10 @@ class DDPExecutor(Parallelism):
         print("Completed DDP event")
 
         # clean up resources
+        del sampler
+        del dataloader
+        del updated_obj
+        del model_object
         gc.collect()
         clean_up()
 
