@@ -426,7 +426,7 @@ class MOPController:
         reduced_df = agg_df.mean().to_frame()
 
         # display metrics on the notebook
-        HTML(reduced_df.to_html(index=False))
+        display(reduced_df)
 
         return True
 
