@@ -424,6 +424,7 @@ class MOPController:
             df = pd.read_csv(output_path, header=0)
             agg_df = pd.concat([agg_df, df], ignore_index=True)
         reduced_df = agg_df.mean().to_frame()
+        reduced_df.columns = ["Values"]
 
         # display metrics on the notebook
         display(reduced_df)
