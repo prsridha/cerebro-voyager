@@ -421,7 +421,7 @@ class MOPController:
         agg_df = pd.DataFrame()
         for worker_id in range(self.num_workers):
             output_path = os.path.join(self.params.mop["test_output_path"], f"test_output_{Path(model_tag).stem}_{worker_id}.csv")
-            df = pd.read_csv(output_path, header=0)
+            df = pd.read_csv(output_path, header=0, names=["Metrics", "Values"])
             agg_df = pd.concat([agg_df, df], ignore_index=True)
         reduced_df = agg_df.mean().to_frame()
 
