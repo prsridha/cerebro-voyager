@@ -1,13 +1,6 @@
 # FROM prsridha/cerebro-base-aws:latest
 FROM prsridha/cerebro-base-voyager:latest
 
-# CHANGE THIS BASED ON YOUR ENVIRONMENT
-ARG ENVIRONMENT=dev
-
-# create a new user - xmen
-# RUN groupadd -g 1000 xmen_group && \
-#    useradd -u 1000 -g 1000 -ms /bin/bash xmen
-
 # update packages
 RUN apt-get update
 
@@ -38,14 +31,8 @@ COPY build/sync.sh /sync.sh
 RUN chmod -R +rx /cerebro-core
 RUN chmod +x /sync.sh
 
-# make it permissive if in dev enviroment
-# RUN if [ "$ENVIRONMENT" = "dev" ]; then \
-#        chown -R xmen:xmen_group /cerebro-core; \
-#    fi
-
 # dummy task (Kubernetes will overrride)
 ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 # run this from cerebro-core dir
-# FOR PROD: sudo docker build --build-arg ENVIRONMENT=prod -t prsridha/cerebro-core -f build/Dockerfile .
-# FOR DEV: sudo docker build --build-arg ENVIRONMENT=dev -t prsridha/cerebro-core -f build/Dockerfile .
+# sudo docker build --build-arg -t prsridha/cerebro-core -f build/Dockerfile .
