@@ -392,6 +392,29 @@ class KeyValueStore:
         cursor.close()
         return status
 
+    def mop_set_worker_progress(self, worker_id, progress):
+        query = """
+            INSERT OR REPLACE
+            INTO mop_worker_progress (worker_id, worker_progress)
+            VALUES (?, ?)
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id, progress))
+        cursor.close()
+        self.conn.commit()
+
+    def mop_get_worker_progress(self, worker_id):
+        query = """
+            SELECT worker_progress
+            FROM mop_worker_progress
+            WHERE worker_id = ?
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query, (worker_id,))
+        progress = cursor.fetchone()[0]
+        cursor.close()
+        return progress
+
     # model_id to model mapping
     def mop_set_model_mapping(self, model_map):
         cursor = self.conn.cursor()

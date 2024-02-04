@@ -43,7 +43,7 @@ def clean_up():
     dist.destroy_process_group()
 
 class DDPExecutor(Parallelism):
-    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size=None):
+    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size=None, update_progress_fn=None):
         super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size)
         self.name = "DDPExecutor"
         logging = CerebroLogger("worker-{}".format(worker_id))
@@ -59,6 +59,8 @@ class DDPExecutor(Parallelism):
         self.hyperparams = model_config
         self.world_size = hthpu.device_count()
         self.model_path = model_checkpoint_path
+        if update_progress_fn:
+            self.update_progress_fn = update_progress_fn
 
         # get output path
         params = Params()
@@ -201,19 +203,31 @@ class DDPExecutor(Parallelism):
 
         elif self.mode == "test":
             test_outputs = []
+            subepoch_size = len(dataloader)
             for k, minibatch in enumerate(dataloader):
                 output = user_func(updated_obj, minibatch, self.hyperparams, device)
                 test_outputs.append(output)
+
+                # compute completed percentage and update progress on rank 0
+                if rank == 0:
+                    percentage = k/subepoch_size * 100
+                    self.update_progress_fn(percentage)
 
             self.save_local_metrics(rank, test_outputs, user_metrics_func)
 
         elif self.mode == "predict":
             predict_outputs = []
+            subepoch_size = len(dataloader)
             for k, minibatch in enumerate(dataloader):
                 outputs, probabilities = user_func(updated_obj, minibatch, self.hyperparams, device)
                 row_ids = minibatch[1].tolist()
                 mapped_classes = [(row_ids[i], outputs[i], probabilities[i]) for i in range(len(row_ids))]
                 predict_outputs.extend(mapped_classes)
+
+                # compute completed percentage and update progress on rank 0
+                if rank == 0:
+                    percentage = k / subepoch_size * 100
+                    self.update_progress_fn(percentage)
 
             # save inference outputs of each rank
             output_filename = os.path.join(self.predict_output_path, f"predict_output_{self.model_tag}_{self.worker_id}_{rank}.csv")

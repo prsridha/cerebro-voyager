@@ -3,9 +3,9 @@ import gc
 import glob
 import json
 import time
-from pathlib import Path
-
 import pandas as pd
+from pathlib import Path
+from functools import partial
 from kubernetes import client, config
 
 from cerebro.util.params import Params
@@ -138,7 +138,8 @@ class CerebroWorker:
 
         # create parallelism object
         model_config = {"batch_size": batch_size}
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
+        update_progress_fn = partial(self.kvs.mop_set_worker_progress, self.worker_id)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed, update_progress_fn)
 
         # run test via parallelism
         model_tag_stem = str(Path(model_tag).stem)
