@@ -81,12 +81,11 @@ CREATE TABLE IF NOT EXISTS mop_worker_status (
     worker_status TEXT DEFAULT ""
 );
 
--- ETL Worker Progress
+-- MOP Worker Progress
 CREATE TABLE IF NOT EXISTS mop_worker_progress (
     worker_id INTEGER PRIMARY KEY,
     worker_progress FLOAT DEFAULT 0.0
 );
-
 
 -- MOP Model Mapping
 CREATE TABLE IF NOT EXISTS mop_model_mapping (
