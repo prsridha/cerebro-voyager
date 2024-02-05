@@ -11,8 +11,8 @@ if [ -f /user/requirements.txt ]; then
 fi
 
 # run mop worker
-python3 /cerebro-core/cerebro/mop/mop_worker.py
-# sleep infinity
+#python3 /cerebro-core/cerebro/mop/mop_worker.py
+ sleep infinity
 
 # check if command exited with error code
 exit_code=$?
