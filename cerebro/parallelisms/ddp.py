@@ -52,10 +52,10 @@ class DDPExecutor(Parallelism):
         self.logger = logging.create_logger("ddp-worker")
 
         self.mode = None
-        self.seed = seed
         self.epoch = epoch
         self.model_id = None
         self.model_tag = None
+        self.seed = kvs.get_seed()
         self.worker_id = worker_id
         self.sample_size = sample_size
         self.hyperparams = model_config

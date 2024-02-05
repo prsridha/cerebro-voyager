@@ -30,7 +30,6 @@ class CerebroWorker:
         self.minibatch_spec = None
         self.worker_id = worker_id
         self.kvs = KeyValueStore()
-        self.seed = self.kvs.get_seed()
 
         # load values from cerebro-info configmap
         namespace = os.environ['NAMESPACE']
@@ -72,7 +71,7 @@ class CerebroWorker:
         ParallelismExecutor = get_parallelism_executor(parallelism_name)
         model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(model_id))
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0)
 
         self.logger.info("Created parallelism object")
 
@@ -100,7 +99,7 @@ class CerebroWorker:
         model_checkpoint_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(model_id))
         model_config = self.kvs.mop_get_model_mapping(model_id)
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, epoch, self.seed)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, epoch)
 
         # call the train function
         parallelism.execute_train(self.minibatch_spec, model_id)
@@ -139,7 +138,7 @@ class CerebroWorker:
 
         # create parallelism object
         model_config = {"batch_size": batch_size}
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0)
 
         # run test via parallelism
         model_tag_stem = str(Path(model_tag).stem)
@@ -162,7 +161,7 @@ class CerebroWorker:
 
         # create parallelism object
         model_config = {"batch_size": batch_size}
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0)
 
         # run test via parallelism
         model_tag_stem = str(Path(model_tag).stem)

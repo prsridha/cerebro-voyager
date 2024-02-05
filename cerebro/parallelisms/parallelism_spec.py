@@ -1,5 +1,5 @@
 class Parallelism:
-    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size=None):
+    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, sample_size=None):
         pass
 
     def save_local_metrics(self, rank, metrics, user_metrics_func):
