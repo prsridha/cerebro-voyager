@@ -126,7 +126,7 @@ class Experiment:
         try:
             self.etl.run_etl()
         except Exception as e:
-            self.logger("Caught exception in run_etl. Exiting.")
+            self.logger.info("Caught exception in run_etl. Exiting.")
             return
 
         print("ETL complete")
@@ -148,7 +148,7 @@ class Experiment:
         try:
             self.mop.grid_search()
         except Exception as e:
-            self.logger("Caught exception in MOP grid_search. Exiting.")
+            self.logger.info("Caught exception in MOP grid_search. Exiting.")
             return
 
         self.logger.info("Model selection complete")
@@ -167,7 +167,7 @@ class Experiment:
 
             self.mop.testing(model_tag, batch_size)
         except Exception as e:
-            self.logger("Caught exception in model test. Exiting.")
+            self.logger.info("Caught exception in model test. Exiting.")
             return
 
     def run_predict(self, minibatch_spec, model_tag, batch_size):
@@ -180,7 +180,7 @@ class Experiment:
 
             self.mop.prediction(model_tag, batch_size)
         except Exception as e:
-            self.logger("Caught exception in model prediction. Exiting.")
+            self.logger.info("Caught exception in model prediction. Exiting.")
             return
 
     def reset(self):
