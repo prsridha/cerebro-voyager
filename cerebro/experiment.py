@@ -156,7 +156,7 @@ class Experiment:
 
         self.mop.prediction(model_tag, batch_size)
 
-    def close(self):
+    def reset(self):
         # scale down all workers
         self.etl.scale_workers(0)
         self.mop.scale_workers(0)
