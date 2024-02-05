@@ -262,7 +262,8 @@ class ETLController:
                 # scale down ETL workers to 0
                 self.scale_workers(0)
 
-                return
+                # close the program
+                sys.exit(1)
 
             total = 0.0
             completed = []
