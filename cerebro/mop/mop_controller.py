@@ -400,6 +400,7 @@ class MOPController:
 
         # run test on all workers
         for worker_id in range(self.num_workers):
+            self.kvs.mop_set_worker_progress(worker_id, 0.0)
             self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
             self.kvs.mop_set_task(kvs_constants.MOP_TASK_TEST, worker_id, task_id)
 
@@ -446,26 +447,25 @@ class MOPController:
 
         # set worker task
         for worker_id in range(self.num_workers):
+            self.kvs.mop_set_worker_progress(worker_id, 0.0)
             self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
             self.kvs.mop_set_task(kvs_constants.MOP_TASK_PREDICT, worker_id, task_id)
-
-        # run test on all workers
-        for worker_id in range(self.num_workers):
-            self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
         # update completion progress
         progress = tqdm_notebook(total=self.num_workers, desc="Inference Progress", position=0, leave=True)
         while True:
-            all_complete = []
-            for w in range(self.num_workers):
-                status = self.kvs.mop_get_worker_status(w)
-                completed = status == kvs_constants.PROGRESS_COMPLETE
-                all_complete.append(completed)
-            progress.update(sum(all_complete) - progress.n)
-            time.sleep(1)
-            if all(all_complete):
+            total = 0.0
+            completed = []
+            for worker_id in range(self.num_workers):
+                total += self.kvs.mop_get_worker_progress(worker_id)
+                completed.append(self.kvs.mop_get_worker_status(worker_id) == kvs_constants.PROGRESS_COMPLETE)
+            percentage = round(total / self.num_workers, 2)
+            if all(completed):
+                progress.update(100 - progress.n)
                 progress.close()
                 break
+            else:
+                progress.update(percentage - progress.n)
 
         # combine inference output files from all workers
         combined_df = pd.DataFrame()

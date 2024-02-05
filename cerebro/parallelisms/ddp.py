@@ -210,7 +210,7 @@ class DDPExecutor(Parallelism):
 
                 # compute completed percentage and update progress on rank 0
                 if rank == 0:
-                    percentage = k/subepoch_size * 100
+                    percentage = k / subepoch_size * 100
                     self.update_progress_fn(percentage)
 
             self.save_local_metrics(rank, test_outputs, user_metrics_func)
