@@ -85,7 +85,7 @@ class EtlProcess:
                         self.download_file(row[feature_name], file_io)
                     except Exception as e:
                         gc.collect()
-                        err_msg = str(e) + traceback.format_exc()
+                        err_msg = str(e) + "\n" + traceback.format_exc()
                         kvs.set_error(str(err_msg))
                         return
 
@@ -100,7 +100,7 @@ class EtlProcess:
                     input_tensor, output_tensor = self.etl_spec.row_prep(row, self.mode, to_path)
                     res_partition.append([row_id, input_tensor, output_tensor])
             except Exception as e:
-                err_msg = str(e) + traceback.format_exc()
+                err_msg = str(e) + "\n" + traceback.format_exc()
                 kvs.set_error(str(err_msg))
                 return
 
