@@ -8,7 +8,6 @@ import itertools
 import pandas as pd
 from pathlib import Path
 from copy import deepcopy
-from pprint import pprint
 from datetime import datetime
 from kubernetes import client, config
 from tqdm.notebook import tqdm_notebook
