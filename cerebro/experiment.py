@@ -164,4 +164,4 @@ class Experiment:
         # restart JupyterLab
         os._exit(00)
 
-        print("Closed experiment")
+        print("Reset experiment")
