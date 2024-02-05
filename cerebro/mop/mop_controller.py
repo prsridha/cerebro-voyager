@@ -339,10 +339,11 @@ class MOPController:
                 if self.worker_running_model[worker_id] == -1:
                     model_id = self.get_runnable_model(worker_id)
                     if model_id != -1:
+                        is_last_epoch = epoch == self.num_epochs
                         is_last_worker = self.model_nworkers_trained[model_id] == n_workers - 1
 
                         # update KVS
-                        self.kvs.mop_set_model_on_worker(worker_id, epoch, model_id, is_last_worker)
+                        self.kvs.mop_set_model_on_worker(worker_id, epoch, model_id, is_last_worker, is_last_epoch)
                         self.kvs.mop_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
                         # set worker task

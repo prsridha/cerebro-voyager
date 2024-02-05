@@ -313,31 +313,32 @@ class KeyValueStore:
         return task_id, task
 
     # model for each mop-worker to run
-    def mop_set_model_on_worker(self, worker_id, epoch, model_id, is_last_worker):
+    def mop_set_model_on_worker(self, worker_id, epoch, model_id, is_last_worker, is_last_epoch):
         query = """
             INSERT OR REPLACE
-            INTO mop_model_on_worker (worker_id, epoch, model_id, is_last_worker)
+            INTO mop_model_on_worker (worker_id, epoch, model_id, is_last_worker, is_last_epoch)
             VALUES (?, ?, ?, ?)
         """
         cursor = self.conn.cursor()
-        cursor.execute(query, (worker_id, epoch, model_id, is_last_worker))
+        cursor.execute(query, (worker_id, epoch, model_id, is_last_worker, is_last_epoch))
         cursor.close()
         self.conn.commit()
 
     def mop_get_models_on_worker(self, worker_id):
         query = """
-            SELECT epoch, model_id, is_last_worker
+            SELECT epoch, model_id, is_last_worker, is_last_epoch
             FROM mop_model_on_worker
             WHERE worker_id = ?
         """
         cursor = self.conn.cursor()
         cursor.execute(query, (worker_id,))
-        epoch, model_id, is_last_worker = cursor.fetchone()
+        epoch, model_id, is_last_worker, is_last_epoch = cursor.fetchone()
         cursor.close()
         d = {
             "epoch": epoch,
             "model_id": model_id,
-            "is_last_worker": is_last_worker
+            "is_last_worker": is_last_worker,
+            "is_last_epoch": is_last_epoch
         }
         return d
 

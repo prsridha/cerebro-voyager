@@ -98,7 +98,8 @@ CREATE TABLE IF NOT EXISTS mop_model_on_worker (
     worker_id INTEGER PRIMARY KEY,
     epoch INTEGER,
     model_id INTEGER,
-    is_last_worker BOOLEAN
+    is_last_worker BOOLEAN,
+    is_last_epoch BOOLEAN
 );
 
 -- MOP Parallelism Mapping

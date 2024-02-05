@@ -5,7 +5,6 @@ import json
 import time
 import pandas as pd
 from pathlib import Path
-from functools import partial
 from kubernetes import client, config
 
 from cerebro.util.params import Params
@@ -15,6 +14,8 @@ from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.parallelisms.parallelism_init import get_parallelism_executor
 
+import torch
+import habana_frameworks.torch.core as htcore
 
 class CerebroWorker:
     def __init__(self):
@@ -77,7 +78,7 @@ class CerebroWorker:
 
         # call the train function
         start = time.time()
-        parallelism.execute_sample(self.minibatch_spec)
+        parallelism.execute_sample(self.minibatch_spec, self.sample_size)
         end = time.time()
 
         time_elapsed = end - start
@@ -87,7 +88,7 @@ class CerebroWorker:
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
-    def train_model(self, model_id, epoch, is_last_worker):
+    def train_model(self, model_id, epoch, is_last_worker, is_last_epoch):
         print("Training model {} on worker {}".format(model_id, self.worker_id))
         self.logger.info("Training model {} on worker {}".format(model_id, self.worker_id))
 
@@ -113,16 +114,16 @@ class CerebroWorker:
             SaveMetrics.save_to_tensorboard(reduced_df, "train_epoch", model_id, epoch)
 
             # run validation
-            self.validate_model(model_id, parallelism)
+            self.validate_model(model_id, parallelism, is_last_epoch)
             self.logger.info("Completed validation of model {} on worker {}".format(model_id, self.worker_id))
             print("Completed validation of model {} on worker {}".format(model_id, self.worker_id))
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
 
-    def validate_model(self, model_id, parallelism):
+    def validate_model(self, model_id, parallelism, is_last_epoch):
         # run validation via parallelism
-        parallelism.execute_val(self.minibatch_spec, model_id)
+        parallelism.execute_val(self.minibatch_spec, model_id, is_last_epoch)
 
     def test_model(self, model_tag, batch_size):
         # get model checkpoint path
@@ -210,7 +211,7 @@ class CerebroWorker:
                 elif task == kvs_constants.MOP_TASK_TRAIN_VAL:
                     self.logger.info("Received task - Train/Val in worker {}".format(self.worker_id))
                     d = self.kvs.mop_get_models_on_worker(self.worker_id)
-                    self.train_model(d["model_id"], d["epoch"], d["is_last_worker"])
+                    self.train_model(d["model_id"], d["epoch"], d["is_last_worker"], d["is_last_epoch"])
                 elif task == kvs_constants.MOP_TASK_TEST:
                     self.logger.info("Received task - Test in worker {}".format(self.worker_id))
                     model_tag, batch_size = self.kvs.mop_get_test_params()

@@ -4,6 +4,7 @@ import time
 import dill
 import base64
 import random
+import shutil
 import warnings
 import pandas as pd
 from pathlib import Path
@@ -45,19 +46,21 @@ def clean_up():
 kvs = KeyValueStore()
 
 class DDPExecutor(Parallelism):
-    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size=None):
-        super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size)
+    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed):
+        super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed)
         self.name = "DDPExecutor"
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("ddp-worker")
 
         self.mode = None
-        self.epoch = epoch
         self.model_id = None
         self.model_tag = None
+        self.sample_size = None
+        self.is_last_epoch = None
+
+        self.epoch = epoch
         self.seed = kvs.get_seed()
         self.worker_id = worker_id
-        self.sample_size = sample_size
         self.hyperparams = model_config
         self.world_size = hthpu.device_count()
         self.model_path = model_checkpoint_path
@@ -201,6 +204,30 @@ class DDPExecutor(Parallelism):
 
             self.save_local_metrics(rank, minibatch_metrics, user_metrics_func)
 
+            if rank == 0:
+                self.logger.info("Completed user's val function with DDP on a minibatch. Metrics saved")
+
+            # save model + params as a single object, remove other dirs (only on rank 0)
+            if self.is_last_epoch and rank == 0:
+                new_model_object = {}
+                for obj_name, obj in updated_obj.items():
+                    if obj_name == "optimizer":
+                        new_model_object[obj_name] = obj
+                    else:
+                        new_model_object[obj_name] = obj.module
+
+                # remove previous files and dirs
+                try:
+                    os.unlink(self.model_path)
+                    shutil.rmtree(self.state_dict_path)
+                except Exception as e:
+                    print(f"Failed to delete files. Reason: {e}")
+
+                # save new checkpoint
+                torch.save(new_model_object, self.model_path)
+
+                self.logger.info("Completed saving model + param as a single object")
+
         elif self.mode == "test":
             test_outputs = []
             subepoch_size = len(dataloader)
@@ -245,9 +272,10 @@ class DDPExecutor(Parallelism):
         gc.collect()
         clean_up()
 
-    def execute_sample(self, minibatch_spec):
+    def execute_sample(self, minibatch_spec, sample_size):
         # set values
         self.mode = "sample"
+        self.sample_size = sample_size
         user_train_func_str = base64.b64encode(dill.dumps(minibatch_spec))
 
         # spawn DDP workers
@@ -268,10 +296,11 @@ class DDPExecutor(Parallelism):
         mp.spawn(self._execute_inner, args=(user_train_func_str, user_metrics_func_str), nprocs=self.world_size, join=True)
         self.logger.info("Completed DDP train function")
 
-    def execute_val(self, minibatch_spec, model_id):
+    def execute_val(self, minibatch_spec, model_id, is_last_epoch):
         # get val and metrics_agg functions
         self.mode = "val"
         self.model_id = model_id
+        self.is_last_epoch = is_last_epoch
         user_val_func, user_metrics_func = minibatch_spec.val_test, minibatch_spec.metrics_agg
         user_val_func_str = base64.b64encode(dill.dumps(user_val_func))
         user_metrics_func_str = base64.b64encode(dill.dumps(user_metrics_func))
