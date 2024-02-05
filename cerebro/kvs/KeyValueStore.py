@@ -317,7 +317,7 @@ class KeyValueStore:
         query = """
             INSERT OR REPLACE
             INTO mop_model_on_worker (worker_id, epoch, model_id, is_last_worker, is_last_epoch)
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
         """
         cursor = self.conn.cursor()
         cursor.execute(query, (worker_id, epoch, model_id, is_last_worker, is_last_epoch))
