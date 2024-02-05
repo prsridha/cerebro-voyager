@@ -12,36 +12,33 @@ class KeyValueStore:
     def __init__(self, init_tables=False):
         base_path = "/key_value_store/cerebro.db"
         self.conn = sqlite3.connect(base_path, timeout=5000)
-        cursor = self.conn.cursor()
-
-        # create tables
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        tables_file = os.path.join(current_dir, "tables.sql")
-        with open(tables_file, 'r') as file:
-            tables_script = file.read()
-        cursor.executescript(tables_script)
-        cursor.close()
-        self.conn.commit()
-
-        # get number of workers
-        try:
-            config.load_config()
-        except config.config_exception.ConfigException as e:
-            time.sleep(1)
-            config.load_config()
-
-        v1 = client.CoreV1Api()
-        username = os.environ['USERNAME']
-        namespace = os.environ['NAMESPACE']
-        cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
-        self.num_workers = json.loads(cm1.data["data"])["num_workers"]
 
         # initialize KVS with default values
         if init_tables:
             self.initialize_tables()
 
     def initialize_tables(self):
-        num_workers = self.num_workers
+        # get number of workers
+        try:
+            config.load_config()
+        except config.config_exception.ConfigException as e:
+            time.sleep(1)
+            config.load_config()
+        v1 = client.CoreV1Api()
+        username = os.environ['USERNAME']
+        namespace = os.environ['NAMESPACE']
+        cm1 = v1.read_namespaced_config_map(name='{}-cerebro-info'.format(username), namespace=namespace)
+        num_workers = json.loads(cm1.data["data"])["num_workers"]
+
+        # create tables
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        tables_file = os.path.join(current_dir, "tables.sql")
+        with open(tables_file, 'r') as file:
+            tables_script = file.read()
+        cursor = self.conn.cursor()
+        cursor.executescript(tables_script)
+        cursor.close()
+        self.conn.commit()
 
         # set seed
         self.set_seed(0)
