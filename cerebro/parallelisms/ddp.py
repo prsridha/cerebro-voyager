@@ -211,6 +211,7 @@ class DDPExecutor(Parallelism):
                 # compute completed percentage and update progress on rank 0
                 if rank == 0:
                     percentage = k / subepoch_size * 100
+                    print(f"COMPLETED {k}, {percentage}")
                     kvs.mop_set_worker_progress(self.worker_id, percentage)
 
             self.save_local_metrics(rank, test_outputs, user_metrics_func)
