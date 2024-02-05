@@ -15,6 +15,7 @@ from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.parallelisms.parallelism_init import get_parallelism_executor
 
+
 class CerebroWorker:
     def __init__(self):
         # obtain worker_id from env variable

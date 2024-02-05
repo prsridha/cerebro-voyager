@@ -23,6 +23,7 @@ from cerebro.parallelisms.parallelism_init import PARALLELISMS_LIST
 
 import torch
 
+
 class MOPController:
     logging = CerebroLogger("controller")
     logger = logging.create_logger("mop")

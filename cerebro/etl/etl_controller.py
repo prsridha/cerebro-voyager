@@ -15,6 +15,7 @@ from cerebro.util.voyager_io import VoyagerIO
 from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 
+
 class ETLController:
     logging = CerebroLogger("controller")
     logger = logging.create_logger("etl")
