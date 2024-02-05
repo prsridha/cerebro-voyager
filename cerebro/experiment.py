@@ -161,4 +161,7 @@ class Experiment:
         self.etl.scale_workers(0)
         self.mop.scale_workers(0)
 
+        # restart JupyterLab
+        os._exit(00)
+
         print("Closed experiment")
