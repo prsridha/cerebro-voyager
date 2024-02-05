@@ -139,8 +139,7 @@ class CerebroWorker:
 
         # create parallelism object
         model_config = {"batch_size": batch_size}
-        update_progress_fn = partial(self.kvs.mop_set_worker_progress, self.worker_id)
-        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed, update_progress_fn)
+        parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, 0, self.seed)
 
         # run test via parallelism
         model_tag_stem = str(Path(model_tag).stem)

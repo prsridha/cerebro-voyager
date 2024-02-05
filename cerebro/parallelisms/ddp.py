@@ -23,6 +23,7 @@ import habana_frameworks.torch.distributed.hccl
 
 from cerebro.util.params import Params
 from cerebro.util.save_metrics import SaveMetrics
+from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.parallelisms.parallelism_spec import Parallelism
 
@@ -38,12 +39,13 @@ def setup(rank, world_size):
     # initialize the process group
     dist.init_process_group(backend='hccl', rank=rank, world_size=world_size)
 
-
 def clean_up():
     dist.destroy_process_group()
 
+kvs = KeyValueStore()
+
 class DDPExecutor(Parallelism):
-    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size=None, update_progress_fn=None):
+    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size=None):
         super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed, sample_size)
         self.name = "DDPExecutor"
         logging = CerebroLogger("worker-{}".format(worker_id))
@@ -59,8 +61,6 @@ class DDPExecutor(Parallelism):
         self.hyperparams = model_config
         self.world_size = hthpu.device_count()
         self.model_path = model_checkpoint_path
-        if update_progress_fn:
-            self.update_progress_fn = update_progress_fn
 
         # get output path
         params = Params()
@@ -211,7 +211,7 @@ class DDPExecutor(Parallelism):
                 # compute completed percentage and update progress on rank 0
                 if rank == 0:
                     percentage = k / subepoch_size * 100
-                    self.update_progress_fn(percentage)
+                    kvs.mop_set_worker_progress(self.worker_id, percentage)
 
             self.save_local_metrics(rank, test_outputs, user_metrics_func)
 
