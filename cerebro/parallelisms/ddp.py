@@ -227,7 +227,7 @@ class DDPExecutor(Parallelism):
                 # compute completed percentage and update progress on rank 0
                 if rank == 0:
                     percentage = k / subepoch_size * 100
-                    self.update_progress_fn(percentage)
+                    kvs.mop_set_worker_progress(self.worker_id, percentage)
 
             # save inference outputs of each rank
             output_filename = os.path.join(self.predict_output_path, f"predict_output_{self.model_tag}_{self.worker_id}_{rank}.csv")
