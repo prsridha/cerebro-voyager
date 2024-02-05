@@ -155,8 +155,7 @@ class MOPController:
         os.system(ownership_cmd)
 
         # print the saved dir location
-        print_dir = os.path.join(os.path.normpath(base_dir), "artifact_" + dt_version)
-        print("Saved experiment artifacts at {}".format(print_dir))
+        print("Saved experiment artifacts at ...{}".format(base_dir))
 
     def download_models(self):
         # if models_dir is defined and checkpoint dir is empty - then download models from remote
