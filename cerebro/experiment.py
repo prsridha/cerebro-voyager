@@ -84,6 +84,8 @@ class Experiment:
             print("Error while downloading miscellaneous files")
             err_message = str(e) + "\n" + traceback.format_exc()
             html_alert(err_message)
+            self.logger.error("Error while downloading miscellaneous files")
+            self.logger.error(str(e) + "\n" + traceback.format_exc())
             return
 
         # create controller objects
@@ -126,7 +128,8 @@ class Experiment:
         try:
             self.etl.run_etl()
         except Exception as e:
-            self.logger.info("Caught exception in run_etl. Exiting.")
+            self.logger.error("Caught exception in run_etl. Exiting.")
+            self.logger.error(str(e) + "\n" + traceback.format_exc())
             return
 
         print("ETL complete")
@@ -148,7 +151,8 @@ class Experiment:
         try:
             self.mop.grid_search()
         except Exception as e:
-            self.logger.info("Caught exception in MOP grid_search. Exiting.")
+            self.logger.error("Caught exception in MOP grid_search. Exiting.")
+            self.logger.error(str(e) + "\n" + traceback.format_exc())
             return
 
         self.logger.info("Model selection complete")
@@ -167,7 +171,8 @@ class Experiment:
 
             self.mop.testing(model_tag, batch_size)
         except Exception as e:
-            self.logger.info("Caught exception in model test. Exiting.")
+            self.logger.error("Caught exception in model test. Exiting.")
+            self.logger.error(str(e) + "\n" + traceback.format_exc())
             return
 
     def run_predict(self, minibatch_spec, model_tag, batch_size):
@@ -180,7 +185,8 @@ class Experiment:
 
             self.mop.prediction(model_tag, batch_size)
         except Exception as e:
-            self.logger.info("Caught exception in model prediction. Exiting.")
+            self.logger.error("Caught exception in model prediction. Exiting.")
+            self.logger.error(str(e) + "\n" + traceback.format_exc())
             return
 
     def reset(self):
