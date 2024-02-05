@@ -5,7 +5,9 @@ def filter_traceback(error_message):
     modules = [
         "etl_controller.py",
         "etl_worker.py",
-        "experiment.py"
+        "experiment.py",
+        "kvs",
+        "cerebro"
     ]
 
     tb = error_message.splitlines()
@@ -14,7 +16,7 @@ def filter_traceback(error_message):
         if not any(module in line for module in modules):
             filtered_tb.append(line)
 
-    return "\n".join(filtered_tb)
+    return "<br>".join(filtered_tb)
 
 
 def html_alert(error_message):
