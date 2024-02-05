@@ -1,12 +1,14 @@
 import os
 import json
 import subprocess
+import traceback
 from pathlib import Path
 import ipywidgets as widgets
 from kubernetes import client, config
 from IPython.display import display, Javascript
 
 from cerebro.util.params import Params
+from cerebro.util.alerts import html_alert
 from cerebro.util.voyager_io import VoyagerIO
 from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.etl.etl_controller import ETLController
@@ -74,7 +76,15 @@ class Experiment:
             self.initialize_via_cli(cli_params)
 
         self.params = Params()
-        self.download_misc_files()
+
+        # download misc files
+        try:
+            self.download_misc_files()
+        except Exception as e:
+            print("Error while downloading miscellaneous files")
+            err_message = str(e) + "\n" + traceback.format_exc()
+            html_alert(err_message)
+            return
 
         # create controller objects
         self.etl = ETLController()
@@ -113,7 +123,11 @@ class Experiment:
         self.kvs.set_seed(seed)
 
         self.etl.initialize_controller(etl_spec, fraction)
-        self.etl.run_etl()
+        try:
+            self.etl.run_etl()
+        except Exception as e:
+            self.logger("Caught exception in run_etl. Exiting.")
+            return
 
         print("ETL complete")
         self.etl.exit_etl()
@@ -131,7 +145,12 @@ class Experiment:
 
         # start grid search
         self.logger.info("Starting grid search...")
-        self.mop.grid_search()
+        try:
+            self.mop.grid_search()
+        except Exception as e:
+            self.logger("Caught exception in MOP grid_search. Exiting.")
+            return
+
         self.logger.info("Model selection complete")
 
         # save metrics
@@ -142,19 +161,27 @@ class Experiment:
         if minibatch_spec:
             self.mop.initialize_controller(minibatch_spec, 0, None)
 
-        if self.params.mop["models_dir"]:
-            self.mop.download_models()
+        try:
+            if self.params.mop["models_dir"]:
+                self.mop.download_models()
 
-        self.mop.testing(model_tag, batch_size)
+            self.mop.testing(model_tag, batch_size)
+        except Exception as e:
+            self.logger("Caught exception in model test. Exiting.")
+            return
 
     def run_predict(self, minibatch_spec, model_tag, batch_size):
         if minibatch_spec:
             self.mop.initialize_controller(minibatch_spec, 0, None)
 
-        if self.params.mop["models_dir"]:
-            self.mop.download_models()
+        try:
+            if self.params.mop["models_dir"]:
+                self.mop.download_models()
 
-        self.mop.prediction(model_tag, batch_size)
+            self.mop.prediction(model_tag, batch_size)
+        except Exception as e:
+            self.logger("Caught exception in model prediction. Exiting.")
+            return
 
     def reset(self):
         # scale down all workers
