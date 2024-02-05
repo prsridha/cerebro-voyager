@@ -46,8 +46,8 @@ def clean_up():
 kvs = KeyValueStore()
 
 class DDPExecutor(Parallelism):
-    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch, seed):
-        super().__init__(worker_id, model_config, model_checkpoint_path, epoch, seed)
+    def __init__(self, worker_id, model_config, model_checkpoint_path, epoch):
+        super().__init__(worker_id, model_config, model_checkpoint_path, epoch)
         self.name = "DDPExecutor"
         logging = CerebroLogger("worker-{}".format(worker_id))
         self.logger = logging.create_logger("ddp-worker")
