@@ -3,6 +3,7 @@ import gc
 import glob
 import json
 import time
+import traceback
 import pandas as pd
 from pathlib import Path
 from kubernetes import client, config
@@ -14,8 +15,6 @@ from cerebro.kvs.KeyValueStore import KeyValueStore
 from cerebro.util.cerebro_logger import CerebroLogger
 from cerebro.parallelisms.parallelism_init import get_parallelism_executor
 
-import torch
-import habana_frameworks.torch.core as htcore
 
 class CerebroWorker:
     def __init__(self):
@@ -78,7 +77,13 @@ class CerebroWorker:
 
         # call the train function
         start = time.time()
-        parallelism.execute_sample(self.minibatch_spec, self.sample_size)
+        try:
+            parallelism.execute_sample(self.minibatch_spec, self.sample_size)
+        except Exception as e:
+            gc.collect()
+            err_msg = str(e) + "\n" + traceback.format_exc()
+            self.kvs.set_error(str(err_msg))
+            return
         end = time.time()
 
         time_elapsed = end - start
@@ -103,7 +108,13 @@ class CerebroWorker:
         parallelism = ParallelismExecutor(self.worker_id, model_config, model_checkpoint_path, epoch)
 
         # call the train function
-        parallelism.execute_train(self.minibatch_spec, model_id)
+        try:
+            parallelism.execute_train(self.minibatch_spec, model_id)
+        except Exception as e:
+            gc.collect()
+            err_msg = str(e) + "\n" + traceback.format_exc()
+            self.kvs.set_error(str(err_msg))
+            return
 
         if is_last_worker:
             # aggregate and plot train epoch metrics
@@ -123,7 +134,13 @@ class CerebroWorker:
 
     def validate_model(self, model_id, parallelism, is_last_epoch):
         # run validation via parallelism
-        parallelism.execute_val(self.minibatch_spec, model_id, is_last_epoch)
+        try:
+            parallelism.execute_val(self.minibatch_spec, model_id, is_last_epoch)
+        except Exception as e:
+            gc.collect()
+            err_msg = str(e) + "\n" + traceback.format_exc()
+            self.kvs.set_error(str(err_msg))
+            return
 
     def test_model(self, model_tag, batch_size):
         # get model checkpoint path
@@ -143,7 +160,13 @@ class CerebroWorker:
 
         # run test via parallelism
         model_tag_stem = str(Path(model_tag).stem)
-        parallelism.execute_test(self.minibatch_spec, model_tag_stem)
+        try:
+            parallelism.execute_test(self.minibatch_spec, model_tag_stem)
+        except Exception as e:
+            gc.collect()
+            err_msg = str(e) + "\n" + traceback.format_exc()
+            self.kvs.set_error(str(err_msg))
+            return
 
         # set worker status as complete
         self.kvs.mop_set_worker_status(self.worker_id, kvs_constants.PROGRESS_COMPLETE)
@@ -168,7 +191,13 @@ class CerebroWorker:
         model_tag_stem = str(Path(model_tag).stem)
         predict_output_path = self.params.mop["predict_output_path"]
         Path(os.path.dirname(predict_output_path)).mkdir(exist_ok=True)
-        parallelism.execute_predict(self.minibatch_spec, model_tag_stem)
+        try:
+            parallelism.execute_predict(self.minibatch_spec, model_tag_stem)
+        except Exception as e:
+            gc.collect()
+            err_msg = str(e) + "\n" + traceback.format_exc()
+            self.kvs.set_error(str(err_msg))
+            return
 
         # combine inference files of all ranks
         predict_output_rank_files = os.path.join(predict_output_path,

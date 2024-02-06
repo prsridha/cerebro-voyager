@@ -5,15 +5,18 @@ import pprint
 import random
 import hashlib
 import itertools
+import traceback
+
 import pandas as pd
 from pathlib import Path
 from copy import deepcopy
 from datetime import datetime
 from kubernetes import client, config
 from tqdm.notebook import tqdm_notebook
-from IPython.display import display, FileLink, HTML
+from IPython.display import display, FileLink
 
 from cerebro.util.params import Params
+from cerebro.util.alerts import html_alert
 import cerebro.kvs.constants as kvs_constants
 from cerebro.util.voyager_io import VoyagerIO
 from cerebro.kvs.KeyValueStore import KeyValueStore
@@ -212,7 +215,14 @@ class MOPController:
 
     def create_model_components(self):
         for model_id, hyperparams in enumerate(self.msts):
-            model_object = self.minibatch_spec.create_model_components(hyperparams)
+            try:
+                model_object = self.minibatch_spec.create_model_components(hyperparams)
+            except Exception as e:
+                self.logger.error("Error while creating model components - " + str(e))
+                msg = "\n".join(["Error while creating models components", str(e), traceback.format_exc()])
+                html_alert(msg)
+                raise Exception(e)
+
             model_object_path = os.path.join(self.params.mop["checkpoint_storage_path"], "model_" + str(model_id),
                                              "model_object_{}.pt".format(str(model_id)))
             Path(os.path.dirname(model_object_path)).mkdir(parents=True, exist_ok=True)
@@ -280,7 +290,14 @@ class MOPController:
                         remaining_mpls.remove(mpl)
                         sampling_progress.update(1)
                         mpl_on_worker[w] = None
-            time.sleep(1)
+
+            # check for errors
+            err = self.kvs.get_error()
+            if err:
+                self.logger.error("Notified of error in MOP Controller, exiting")
+                html_alert(err)
+                self.scale_workers(0)
+                raise Exception(str(err))
 
         # save the best parallelism for each model
         msts_parallelisms = deepcopy(self.msts)
@@ -381,6 +398,14 @@ class MOPController:
                             model_progresses[model_id].update(update_val)
                             self.logger.info("Model:" + str(model_id) + " trained on " + str(self.model_nworkers_trained[model_id]) + "/" + str(n_workers))
 
+            # check for errors
+            err = self.kvs.get_error()
+            if err:
+                self.logger.error("Notified of error in MOP Controller, exiting")
+                html_alert(err)
+                self.scale_workers(0)
+                raise Exception(str(err))
+
         self.logger.info("Ending epoch...")
 
         # close progress bars
@@ -419,6 +444,14 @@ class MOPController:
                 break
             else:
                 progress.update(percentage - progress.n)
+
+            # check for errors
+            err = self.kvs.get_error()
+            if err:
+                self.logger.error("Notified of error in MOP Controller, exiting")
+                html_alert(err)
+                self.scale_workers(0)
+                raise Exception(str(err))
 
         # aggregate results
         agg_df = pd.DataFrame()
@@ -466,6 +499,14 @@ class MOPController:
                 break
             else:
                 progress.update(percentage - progress.n)
+
+            # check for errors
+            err = self.kvs.get_error()
+            if err:
+                self.logger.error("Notified of error in MOP Controller, exiting")
+                html_alert(err)
+                self.scale_workers(0)
+                raise Exception(str(err))
 
         # combine inference output files from all workers
         combined_df = pd.DataFrame()
