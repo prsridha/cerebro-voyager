@@ -254,7 +254,7 @@ class ETLController:
             # check for errors and raise alert
             err = self.kvs.get_error()
             if err:
-                self.logger.error("Notified of error in Controller, exiting")
+                self.logger.error("Notified of error in ETL Controller, exiting")
                 html_alert(err)
                 self.scale_workers(0)
                 raise Exception(str(err))
