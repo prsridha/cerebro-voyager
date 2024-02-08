@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: <pod_name>
+  labels:
+    user: <username>
+spec:
+  restartPolicy: Never
+  containers:
+    - name: cleanup
+      image: ubuntu
+      command: [ "/bin/bash", "-c", "--" ]
+      args: [ "rm -rf /mnt/*; exit 0" ]
+      volumeMounts:
+        - name: cerebro-volume
+          mountPath: /mnt
+  volumes:
+    - name: cerebro-volume
+      hostPath:
+        path: <host_path>

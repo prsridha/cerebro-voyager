@@ -1,0 +1,44 @@
+controller:
+  volumes:
+    userCodePath: /user
+    logPath: /data/logs
+    kvsPath: /key_value_store
+    dataPath: /data/data_storage
+    metricsPath: /data/metrics_storage
+    checkpointPath: /data/checkpoint_storage
+    baseHostPath: /voyager/ceph/users/<username>/volumes
+    datasetHostPath: /voyager/ceph/users/<username>/datasets
+    datasetMountPath: /datasets
+  image:
+    platform: dev
+    gitBranch: v0.1
+    gitURL: https://github.com/prsridha/cerebro-core.git
+    core: prsridha/cerebro-core:latest
+  services:
+    jupyterPort: 8888
+    tensorboardPort: 6006
+cluster:
+  namespace: default
+  uid: <uid>
+  gid: <gid>
+  jupyterTokenSting: projectcerebro
+  resourceRequests:
+    workerGPU: 8
+    workerCPU: 92
+    hugePages: 1Gi
+    workerMemory: 384G
+    controllerCPU: 16
+    controllerMemory: 16G
+  resourceLimits:
+    workerGPU: 8
+    workerCPU: 92
+    hugePages: 1Gi
+    workerMemory: 384G
+    controllerCPU: 20
+    controllerMemory: 32G
+  numWorkers: 4
+  username: <username>
+worker:
+  sampleSize: 0.01
+  shardMultiplicity: 4
+  workerDataPath: /data_storage_worker
