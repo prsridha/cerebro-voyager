@@ -229,12 +229,13 @@ class CerebroInstaller:
 
     def init(self, num_workers):
         # update num_workers
-        if self.values_yaml["cluster"]["numWorkers"] != num_workers:
+        if num_workers:
             self.values_yaml["cluster"]["numWorkers"] = num_workers
             # write updated yaml
             with open("setup/values.yaml", 'w') as file:
                 file.write(self.values_yaml)
             self.num_workers = num_workers
+        print(f"Number of workers set to {self.num_workers}")
 
         # create node hardware info configmap
         v1 = client.CoreV1Api()
@@ -467,7 +468,7 @@ class CerebroInstaller:
     def testing(self):
         pass
 
-    def start(self, workers):
+    def start(self, workers=None):
         # initialize basic cerebro components
         self.init(workers)
 
