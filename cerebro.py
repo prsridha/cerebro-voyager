@@ -4,6 +4,7 @@ import time
 import fire
 import random
 import signal
+import subprocess
 import oyaml as yaml
 from pathlib import Path
 from kubernetes import client, config
