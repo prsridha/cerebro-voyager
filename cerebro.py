@@ -383,9 +383,9 @@ class CerebroInstaller:
 
         # clean up Workers
         try:
-            cmd1 = "helm delete {}-etl-worker -n {}".format(self.username, self.namespace)
+            cmd1 = "helm delete {}-etl-worker -n {} >/dev/null 2>&1 ".format(self.username, self.namespace)
             run(cmd1, capture_output=False)
-            cmd2 = "helm delete {}-mop-worker -n {}".format(self.username, self.namespace)
+            cmd2 = "helm delete {}-mop-worker -n {} >/dev/null 2>&1 ".format(self.username, self.namespace)
             run(cmd2, capture_output=False)
 
             etl_label_selector = "app=cerebro-etl-worker,user={}".format(self.username)
@@ -400,7 +400,7 @@ class CerebroInstaller:
 
         # clean up Controller
         try:
-            cmd4 = "helm delete {}-cerebro-controller -n {}".format(self.username, self.namespace)
+            cmd4 = "helm delete {}-cerebro-controller -n {} >/dev/null 2>&1 ".format(self.username, self.namespace)
             run(cmd4, halt_exception=False)
             label_selector = "app=cerebro-controller,user={}".format(self.username)
             wait_till_delete(self.namespace, label_selector, v1)
