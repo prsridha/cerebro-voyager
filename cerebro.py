@@ -183,7 +183,6 @@ class CerebroInstaller:
 
         if username in configmap:
             del configmap[username]
-            print(configmap)
             data = {username: ports for username, ports in configmap.items()}
             body = {
                 "apiVersion": "v1",
@@ -242,7 +241,7 @@ class CerebroInstaller:
         cm_exists = False
         try:
             _ = v1.read_namespaced_config_map(name="cerebro-node-hardware-info", namespace=self.namespace)
-            print("Configmap for node hardware info already exists")
+            # print("Configmap for node hardware info already exists")
             cm_exists = True
         except Exception:
             pass
@@ -255,7 +254,7 @@ class CerebroInstaller:
             configmap = client.V1ConfigMap(data={"data": json.dumps(node_hardware_info)},
                                            metadata=client.V1ObjectMeta(name="cerebro-node-hardware-info"))
             v1.create_namespaced_config_map(namespace=self.namespace, body=configmap)
-            print("Created configmap for node hardware info")
+            # print("Created configmap for node hardware info")
 
         # create ports
         ports = self._create_ports()
@@ -278,7 +277,7 @@ class CerebroInstaller:
         configmap = client.V1ConfigMap(data={"data": json.dumps(configmap_values)},
                                        metadata=client.V1ObjectMeta(name="{}-cerebro-info".format(self.username)))
         v1.create_namespaced_config_map(namespace=self.namespace, body=configmap)
-        print("Created configmap for Cerebro values info")
+        # print("Created configmap for Cerebro values info")
 
         # create directories
         dirs = []
@@ -298,11 +297,11 @@ class CerebroInstaller:
     def create_controller(self):
         cmds = [
             "mkdir -p setup/charts",
-            "helm create setup/charts/cerebro_controller",
+            "helm create setup/charts/cerebro_controller >/dev/null 2>&1",
             "rm -rf setup/charts/cerebro_controller/templates/*",
             "cp setup/controller/* setup/charts/cerebro_controller/templates/",
             "cp setup/values.yaml setup/charts/cerebro_controller/values.yaml",
-            "helm install --namespace={} {}-cerebro-controller setup/charts/cerebro_controller/".format(self.namespace,
+            "helm install --namespace={} {}-cerebro-controller setup/charts/cerebro_controller/ >/dev/null 2>&1".format(self.namespace,
                                                                                                   self.username),
             "rm -rf setup/charts"
         ]
@@ -310,7 +309,7 @@ class CerebroInstaller:
         for cmd in cmds:
             time.sleep(0.5)
             run(cmd, capture_output=False)
-        print("Created Controller deployment")
+        # print("Created Controller deployment")
 
         v1 = client.AppsV1Api()
         ready = False
@@ -319,7 +318,7 @@ class CerebroInstaller:
         while not ready:
             rollout = v1.read_namespaced_deployment_status(name=deployment_name, namespace=self.namespace)
             if rollout.status.ready_replicas == rollout.status.replicas:
-                print("Controller created successfully")
+                print("Created Cerebro Controller")
                 ready = True
             else:
                 time.sleep(1)
@@ -339,19 +338,19 @@ class CerebroInstaller:
             t_remote_port, t_local_port)
 
         run(pf1, capture_output=False)
-        print("Created Kubernetes port-forward for JupyterLab")
+        # print("Created Kubernetes port-forward for JupyterLab")
         run(pf2, capture_output=False)
-        print("Created Kubernetes port-forward for Tensorboard")
+        # print("Created Kubernetes port-forward for Tensorboard")
 
     def create_workers(self):
         # create ETL Workers
         cmds = [
             "mkdir -p setup/charts",
-            "helm create setup/charts/cerebro_etl_worker",
+            "helm create setup/charts/cerebro_etl_worker >/dev/null 2>&1",
             "rm -rf setup/charts/cerebro_etl_worker/templates/*",
             "cp setup/etl_worker/* setup/charts/cerebro_etl_worker/templates/",
             "cp setup/values.yaml setup/charts/cerebro_etl_worker/values.yaml",
-            "helm install --namespace={} {}-etl-worker setup/charts/cerebro_etl_worker".format(self.namespace, self.username),
+            "helm install --namespace={} {}-etl-worker setup/charts/cerebro_etl_worker >/dev/null 2>&1 ".format(self.namespace, self.username),
             "rm -rf setup/charts"
         ]
 
@@ -359,16 +358,16 @@ class CerebroInstaller:
             time.sleep(0.5)
             run(cmd, capture_output=False)
 
-        print("ETL Workers created successfully")
+        print("Created ETL Workers")
 
         # create MOP Workers
         cmds = [
             "mkdir -p setup/charts",
-            "helm create setup/charts/cerebro_mop_worker",
+            "helm create setup/charts/cerebro_mop_worker >/dev/null 2>&1 ",
             "rm -rf setup/charts/cerebro_mop_worker/templates/*",
             "cp setup/mop_worker/* setup/charts/cerebro_mop_worker/templates/",
             "cp setup/values.yaml setup/charts/cerebro_mop_worker/values.yaml",
-            "helm install --namespace={} {}-mop-worker setup/charts/cerebro_mop_worker".format(self.namespace, self.username),
+            "helm install --namespace={} {}-mop-worker setup/charts/cerebro_mop_worker >/dev/null 2>&1 ".format(self.namespace, self.username),
             "rm -rf setup/charts"
         ]
 
@@ -376,7 +375,7 @@ class CerebroInstaller:
             time.sleep(0.5)
             run(cmd, capture_output=False)
 
-        print("MOP Workers created successfully")
+        print("Created ML Workers")
 
     def shutdown(self):
         # load kubernetes config
@@ -397,7 +396,7 @@ class CerebroInstaller:
         except Exception as _:
             print("Got an error while cleaning up Workers")
 
-        print("Cleaned up Workers")
+        print("Removed Workers")
 
         # clean up Controller
         try:
@@ -407,7 +406,7 @@ class CerebroInstaller:
             wait_till_delete(self.namespace, label_selector, v1)
         except Exception as e:
             print("Got error while cleaning up Controller: " + str(e))
-        print("Cleaned up Controller")
+        print("Removed Controller")
 
         # cleanUp ConfigMaps
         configmap_name = "{}-cerebro-info".format(self.username)
@@ -418,7 +417,7 @@ class CerebroInstaller:
                 namespace=self.namespace,
                 body=client.V1DeleteOptions(),
             )
-            print(f"ConfigMap '{configmap_name}' deleted successfully.")
+            # print(f"ConfigMap '{configmap_name}' deleted")
         except Exception as e:
             print(f"Error deleting ConfigMap '{configmap_name}': {e}")
 
@@ -433,13 +432,13 @@ class CerebroInstaller:
                 os.kill(pid, signal.SIGTERM)
             except:
                 pass
-        print("Removed all Kubernetes port-forwards")
+        # print("Removed all Kubernetes port-forwards")
 
         # clear out hostPath Volumes
         print("Deleting files")
         self._delete_hostpath_volumes()
 
-        print("Shutdown Cerebro!")
+        print("Cerebro shut down!")
 
     def url(self):
         # generate ssh command
