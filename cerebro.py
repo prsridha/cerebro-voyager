@@ -227,6 +227,10 @@ class CerebroInstaller:
                 break
             time.sleep(2)
 
+    def install(self):
+        run("setup/misc/install.sh")
+        print("Cerebro dependencies installed.")
+
     def init(self, num_workers):
         # update num_workers
         if num_workers:
