@@ -79,6 +79,9 @@ If you're using JupyterLab Desktop, you can copy-paste the link in the <i>Connec
    ```
 <b>A detailed list of all commands and their usage can be found [here](docs/setup_options.md).</b>   
 
+## Examples
+A sample implementation of model selection for Resnet50 on the Imagenet dataset using Cerebro can be found [here](examples/Resnet%20on%20Imagenet). The top-5 accuracy of some of the models trained are shown below - 
+![top_5_acc](docs/img/train_top5_acc.png)
 
 ## Support
 For issues and feature requests, please open a [GitHub issue](https://github.com/prsridha/cerebro-voyager/issues).

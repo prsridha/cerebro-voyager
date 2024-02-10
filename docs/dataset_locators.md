@@ -25,5 +25,5 @@ A sample <i>params</i> dictionary is given below -
 ![Sample Params](img/sample_params.png)
 
 When multiple Dataset Locators are given, Cerebro has been designed to intuitively pick the correct set of tasks. An example of this parsing for the train task is depicted below:
-![Sample Params](img/dataset_locators_flow.png)
+![ETL flow](img/dataset_locators_flow.png)
 
