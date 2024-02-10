@@ -9,7 +9,8 @@ Users provide their ML code via a Jupyter Notebook interface, while Cerebro hand
 This project is currently offered on SDSC's [Voyager](https://www.sdsc.edu/support/user_guides/voyager.html#accounts) cluster.
 
 
-<h2>Features</h2>
+## Features
+
 - [x] Distributed Data Pre-processing
 - [x] Distributed Train and Validation and Test
 - [x] Distributed Model Inference
@@ -19,7 +20,7 @@ This project is currently offered on SDSC's [Voyager](https://www.sdsc.edu/suppo
 - [x] No complex cluster setup process
 
 
-<h2>Usage</h2>
+## Usage
 You can interact with Cerebro by filling out code templates, which are then picked up and internally scaled across the cluster resources. A copy of the template can be found [here](setup/misc/experiment.ipynb).
 We recommend storing your datasets for your experiments in Voyager's [Ceph storage](https://www.sdsc.edu/support/user_guides/voyager.html#storage).
 The user is expected to provide the following details about their experiment:
@@ -52,7 +53,7 @@ More detailed -
    - Flowchart for params
 
 
-<h2>Setup and Installation</h2>
+## Setup and Installation
 1. Login to the Voyager console by obtaining access as mentioned [here](https://www.sdsc.edu/support/user_guides/voyager.html#access), and clone this repository.
     ```
     ssh <username>@login.voyager.sdsc.edu
@@ -79,7 +80,7 @@ If you're using JupyterLab Desktop, you can copy-paste the link in the <i>Connec
 <b>A detailed list of all commands and their usage can be found [here](docs/setup_options.md).</b>   
 
 
-<h2>Support</h2>
+## Support
 For issues and feature requests, please open a [GitHub issue](https://github.com/prsridha/cerebro-voyager/issues).
 
 
