@@ -12,7 +12,7 @@ controller:
   image:
     platform: dev
     gitBranch: v0.1
-    gitURL: https://github.com/prsridha/cerebro-core.git
+    gitURL: https://github.com/prsridha/cerebro-voyager.git
     core: prsridha/cerebro-core:latest
   services:
     jupyterPort: 8888
