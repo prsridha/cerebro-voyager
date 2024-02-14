@@ -36,9 +36,9 @@ spec:
       - name: etl-container
         image: {{ .Values.controller.image.core }}
         imagePullPolicy: Always
-        workingDir: /cerebro-core
+        workingDir: /cerebro-voyager
         command: [ "/bin/bash", "-c", "--" ]
-        args: [ "/sync.sh; /cerebro-core/cerebro/etl/run_etl.sh" ]
+        args: [ "/sync.sh; /cerebro-voyager/cerebro/etl/run_etl.sh" ]
         resources:
           limits:
             memory: {{ .Values.cluster.resourceLimits.workerMemory }}

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# install newly added requirements (if any) for cerebro-core
-#if [ -f /cerebro-core/requirements.txt ]; then
-#    pip install -r /cerebro-core/requirements.txt
+# install newly added requirements (if any) for cerebro-voyager
+#if [ -f /cerebro-voyager/requirements.txt ]; then
+#    pip install -r /cerebro-voyager/requirements.txt
 #fi
 
 # install requirements for user repo
@@ -11,7 +11,7 @@ if [ -f /user/requirements.txt ]; then
 fi
 
 # run etl worker
-python3 /cerebro-core/cerebro/etl/etl_worker.py
+python3 /cerebro-voyager/cerebro/etl/etl_worker.py
 # sleep infinity
 
 # check if command exited with error code

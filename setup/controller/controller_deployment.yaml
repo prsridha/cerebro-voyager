@@ -48,9 +48,9 @@ spec:
       - name: controller
         image: {{ .Values.controller.image.core }}
         imagePullPolicy: Always
-        workingDir: /cerebro-core
+        workingDir: /cerebro-voyager
         command: [ "/bin/bash", "-c", "--" ]
-        args: [ "/sync.sh; /cerebro-core/init.sh"]
+        args: [ "/sync.sh; /cerebro-voyager/init.sh"]
         resources:
           limits:
             cpu: {{ .Values.cluster.resourceLimits.controllerCPU }}

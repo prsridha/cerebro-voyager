@@ -36,9 +36,9 @@ spec:
       - name: mop-container
         image: {{ .Values.controller.image.core }}
         imagePullPolicy: Always
-        workingDir: /cerebro-core
+        workingDir: /cerebro-voyager
         command: [ "/bin/bash", "-c", "--" ]
-        args: [ "/sync.sh; /cerebro-core/cerebro/mop/run_mop.sh" ]
+        args: [ "/sync.sh; /cerebro-voyager/cerebro/mop/run_mop.sh" ]
         resources:
           limits:
             habana.ai/gaudi: {{ .Values.cluster.resourceLimits.workerGPU }}
