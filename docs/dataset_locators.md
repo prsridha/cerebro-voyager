@@ -9,7 +9,7 @@
 If your data contains multi-modal object files (images, text, video, etc.), you can specify the relative path to your object file for each example row, in the respective feature column. This object path should be relative to the base directory path provided in the <i>params</i> field.
 
 
-3. <b>Miscellaneous files</b> - Any auxiliary files that do not fit into the Dataset files and Object files format can be passed via te misc field. In the example below we are passing a JSON file that contains Imagenet labels that are mapped to their numeric IDs, which will be used in inference.
+3. <b>Miscellaneous files</b> - Any auxiliary files that do not fit into the Dataset files and Object files format can be passed via te misc field. In the example below we are passing a JSON file that contains Imagenet labels that are mapped to their numeric IDs, which will be used in inference. All misc. files need to be specified in a List.
 
 
 4. <b>ETL Dir</b> -  This directory is used for storing processed data for re-use in future experiments. If the the ETL pre-processing locators are specified along with ETL Dir, then the data is processed and written to ETL Dir. If only ETL Dir is specified, then the already processed data will be read in for the next model building steps.  

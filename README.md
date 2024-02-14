@@ -6,7 +6,8 @@ Deep Learning model selection, regardless of the size of the datasets or models.
 With Cerebro, model building can be effortlessly scaled across multiple GPUs and across multiple nodes of the cluster.
 Users provide their ML code via a Jupyter Notebook interface, while Cerebro handles all distributed machine learning operations in the background.
 
-This project is currently offered on SDSC's [Voyager](https://www.sdsc.edu/support/user_guides/voyager.html#accounts) cluster.
+This project is currently offered on SDSC's [Voyager](https://www.sdsc.edu/support/user_guides/voyager.html#accounts) cluster. The list of supported PyTorch function calls on Voyager's Habana processor can be found [here](https://docs.habana.ai/en/latest/PyTorch/PyTorch_Model_Porting/GPU_Migration_Toolkit/Habana_GPU_Migration_APIs.html).
+We support only PyTorch as of now.
 
 
 ## Features
@@ -25,23 +26,23 @@ You can interact with Cerebro by filling out code templates, which are then pick
 We recommend storing your datasets for your experiments in Voyager's [Ceph storage](https://www.sdsc.edu/support/user_guides/voyager.html#storage).
 The user is expected to provide the following details about their experiment:
  
-1. <b>Dataset Locators</b> - Cerebro expects data to be in tabular .csv format, with the first row of the file containing the feature names, followed by each example of your dataset as a row. The path to these dataset files will be specified in the <i>params</i> field on the Jupyter Notebook. <br />
+1. <b>Dataset Locators</b> - Datasets are expected to be in tabular .csv format where each example is a row and the features are columns. The path to these dataset files will be specified in the <i>params</i> field on the Jupyter Notebook. <br />
+   
+   If your data contains multi-modal object files (images, text, video, etc.), you can specify the relative path to your object file in the .csv as shown below. This example is the train dataset file for the Microsoft COCO image captioning dataset - 
 
-   If your data contains multi-modal object files (images, text, video, etc.), you can specify the relative path to your object file as shown below.
+   | Image Object           | Height | Width | Captions                                    |
+   |------------------------|--------|-------|---------------------------------------------|
+   | train/000000318219.jpg | 640    | 556   | "A girl watching computer screen"           |
+   | train/000000184613.jpg | 336    | 500   | "A boy with an umbrella"                    |
+   | train/000000391895.jpg | 360    | 640   | "A man riding on the back of a motorcycle"  |
 
    <b>A more detailed explanation of the list of accepted Dataset Locators can be found [here](docs/dataset_locators.md). </b>
 
-   
-An example train dataset file for the COCO image captioning dataset -  
 
-| Image Object           | Height | Width | Captions                                    |
-|------------------------|--------|-------|---------------------------------------------|
-| train/000000318219.jpg | 640    | 556   | "A girl watching computer screen"           |
-| train/000000184613.jpg | 336    | 500   | "A boy with an umbrella"                    |
-| train/000000391895.jpg | 360    | 640   | "A man riding on the back of a motorcycle"  |
+2. <b>ETL Specification</b>: If you dataset needs to be pre-processed before feeding it into the model, you can add your code in the ETL Spec Class. This class contains functions such as row_prep, where you can specify how a single row of the dataset should be processed. Cerebro will then use this to process the entire dataset in parallel, across all workers. Arguments to this function can be used as inputs for the code. Cerebro will supply values to these arguments by reading the dataset. <br />
+   <b> More details about the specification class can be found [here](docs/etl_spec.md)</b>. 
 
 
-Data, Metadata, params
 Templates - minibatch level
 num_epochs, param_grid
 run everything
