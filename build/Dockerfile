@@ -32,4 +32,4 @@ RUN chmod +x /sync.sh
 ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 # run this from cerebro-voyager dir
-# sudo docker build --build-arg -t prsridha/cerebro-voyager -f build/Dockerfile .
+# sudo docker build -t prsridha/cerebro-voyager -f build/Dockerfile .
