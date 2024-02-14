@@ -88,6 +88,7 @@ class ETLController:
             self.kvs.etl_set_worker_status(worker_id, kvs_constants.IN_PROGRESS)
 
         # scale up ETL workers
+        print("Creating workers")
         self.scale_workers(self.num_workers)
 
         # mark as initializing

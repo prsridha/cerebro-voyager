@@ -76,6 +76,7 @@ class MOPController:
         self.logger.info("Saved MOP spec on KeyValueStore")
 
         # scale MOP workers
+        print("Creating workers")
         scale_status = self.scale_workers(self.num_workers)
         id_str = kvs_constants.MOP_TASK_INITIALIZE
         task_id = hashlib.md5(id_str.encode("utf-8")).hexdigest()
