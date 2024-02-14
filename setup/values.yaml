@@ -13,7 +13,7 @@ controller:
     platform: dev
     gitBranch: v0.1
     gitURL: https://github.com/prsridha/cerebro-voyager.git
-    core: prsridha/cerebro-core:latest
+    core: prsridha/cerebro-voyager:latest
   services:
     jupyterPort: 8888
     tensorboardPort: 6006
