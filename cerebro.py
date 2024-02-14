@@ -383,6 +383,7 @@ class CerebroInstaller:
         v1 = client.CoreV1Api()
 
         # clean up Workers
+        print("Removing Workers")
         try:
             cmd1 = "helm delete {}-etl-worker -n {} >/dev/null 2>&1 ".format(self.username, self.namespace)
             run(cmd1, capture_output=False)
@@ -397,9 +398,9 @@ class CerebroInstaller:
         except Exception as _:
             print("Got an error while cleaning up Workers")
 
-        print("Removed Workers")
 
         # clean up Controller
+        print("Removing Controller")
         try:
             cmd4 = "helm delete {}-cerebro-controller -n {} >/dev/null 2>&1 ".format(self.username, self.namespace)
             run(cmd4, halt_exception=False)
@@ -407,7 +408,6 @@ class CerebroInstaller:
             wait_till_delete(self.namespace, label_selector, v1)
         except Exception as e:
             print("Got error while cleaning up Controller: " + str(e))
-        print("Removed Controller")
 
         # cleanUp ConfigMaps
         configmap_name = "{}-cerebro-info".format(self.username)
