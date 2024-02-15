@@ -1,11 +1,13 @@
 # ETL Specification
 
-The ETL Spec class has functions which, when filled with code, instruct Cerebro on how to process your datasets before using it for model building. The arguments to the functions of this class will be provided by Cerebro. You can make use of these argument variables to implement the function with your code.
-Your can refer to the implementation given [here](../examples/Resnet%20on%20Imagenet/cerebro_imagenet.ipynb) for Resnet50 on Imagenet as an example.
-Also, we recommend that all the Python imports that a particular function needs be specified within the function body, and not outside it. The Minibatch Spec class can contain any other functions defined by the user, called from within the functions given below.
+The ETL Spec class has functions which, when filled with code, instruct Cerebro on how to process your datasets before using it for model building.
 
-The ETL Spec class has the following functions.
+Arguments to functions in this class can be used as inputs for completing your code. Cerebro will supply values to these arguments each time it is called, by reading the dataset.
+Also, we recommend that all the Python imports that a particular function needs be specified within the function body, and not outside it. The ETL Spec class can contain any other functions defined by the user, called from within the functions given below.
 
+As an example, you can refer to the implementation for [Resnet50 on Imagenet](../examples/Resnet%20on%20Imagenet/cerebro_imagenet.ipynb).
+
+The ETL Spec class has the following functions - 
 1. <b>initialize worker()</b>: This function is used for setup of packages or for other one-time-per-worker tasks. This function will be executed exactly once on each worker. It can be left blank if no such tasks exist. For example - if you task involves NLP, you would add code to download tokenizer models from NLTK here.   
 2. <b>read_misc</b>: This function is for accessing the files specified under the <i>misc</i> field in <i>params</i>. 
 <br/>

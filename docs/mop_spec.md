@@ -1,9 +1,12 @@
 # Minibatch Specification
 
-Similar to the ETL Spec, the Minibatch Spec class has functions which, when filled with code, instruct Cerebro on how to build, train and evaluate your models. Your can refer to the implementation given [here](../examples/Resnet%20on%20Imagenet/cerebro_imagenet.ipynb) for Resnet50 on Imagenet as an example. 
-Also, we recommend that all the Python imports that a particular function needs be specified within the function body, and not outside it. The Minibatch Spec class can contain any other functions defined by the user, called from within the functions given below. 
-The Minibatch Spec class has the following functions.
+Similar to the ETL Spec, the Minibatch Spec class has functions which, when filled with code, instruct Cerebro on how to build, train and evaluate your models. 
 
+Also, we recommend that all the Python imports that a particular function needs be specified within the function body, and not outside it. The Minibatch Spec class can contain any other functions defined by the user, called from within the functions given below.
+
+As an example, you can refer to the implementation for [Resnet50 on Imagenet](../examples/Resnet%20on%20Imagenet/cerebro_imagenet.ipynb).
+
+The Minibatch Spec class has the following functions - 
 1. <b>initialize worker()</b>: This function is used for setup of packages or for other one-time-per-worker tasks. This function will be executed exactly once on each worker. It can be left blank if no such tasks exist. For example - if you task involves NLP, you would add code to download tokenizer models from NLTK here.   
 2. <b>read_misc</b>: This function is for accessing the files specified under the <i>misc</i> field in <i>params</i>. 
 <br/>
