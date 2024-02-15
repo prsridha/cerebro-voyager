@@ -74,7 +74,7 @@ If you're using JupyterLab Desktop, you can copy-paste the link in the <i>Connec
 <b>A detailed list of all commands and their usage can be found [here](docs/setup_options.md).</b>   
 
 ## Examples
-A sample implementation of model selection for Resnet50 on the Imagenet dataset using Cerebro can be found [here](examples/Resnet%20on%20Imagenet). The top-5 accuracy of some of the models trained are shown below - 
+A model selection experiment for [Resnet50 on Imagenet](examples/Resnet%20on%20Imagenet) has been implemented using Cerebro, by varying hyperparameter such as batch size, learning rate and lambda values, leading to 8 unique hyperparameter combinations. The top-5 accuracy of some of the models trained are shown below - 
 ![top_5_acc](docs/img/train_top5_acc.png)
 
 ## Support
