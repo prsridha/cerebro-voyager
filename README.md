@@ -39,20 +39,20 @@ The user is expected to provide the following details about their experiment:
    <b>A more detailed explanation of the list of accepted Dataset Locators can be found [here](docs/dataset_locators.md). </b>
 
 
-2. <b>ETL Specification</b>: If you dataset needs to be pre-processed before feeding it into the model, you can add your code in the ETL Spec Class. This class contains functions such as row_prep, where you can specify how a single row of the dataset should be processed. Cerebro will then use this to process the entire dataset in parallel, across all workers. Arguments to this function can be used as inputs for the code. Cerebro will supply values to these arguments by reading the dataset. <br />
-   <b> More details about the specification class can be found [here](docs/etl_spec.md)</b>. 
+2. <b>ETL Specification</b>: If you dataset needs to be pre-processed before feeding it into the model, you can add your code in the ETL Spec Class. Cerebro will process the entire dataset in parallel, across all workers. Arguments to functions in this class can be used as inputs for completing your code. Cerebro will supply values to these arguments each time it is called, by reading the dataset. <br />
+   <b> More details about the class can be found [here](docs/etl_spec.md)</b>.
+
+ 
+3. <b>Minibatch Specification</b>: For model building operations such as train, validation, test and inference, you can add your code in the Minibatch Spec Class. Cerebro will partition your dataset across all workers and train your models using all GPUs in a worker. Similarly, validation, test and prediction are also done in parallel across all workers. Arguments to functions in this class can be used as inputs for completing your code. Cerebro will supply values to these arguments each time it is called, based on the models and the datasets. <br />
+   <b> More details about the class can be found [here](docs/mop_spec.md)</b>.
 
 
+4. <b></b>
+Cerebro allows you to view metrics from all your models in real-time on the same graph in Tensorboard
 Templates - minibatch level
 num_epochs, param_grid
 run everything
 view on Tensorboard
-
-Example - cerebro_imagenet.py
-More detailed - 
-   - APIs
-   - Flowchart for params
-
 
 ## Setup and Installation
 1. Login to the Voyager console by obtaining access as mentioned [here](https://www.sdsc.edu/support/user_guides/voyager.html#access), and clone this repository.

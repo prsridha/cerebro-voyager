@@ -4,7 +4,7 @@ Similar to the ETL Spec, the Minibatch Spec class has functions which, when fill
 Also, we recommend that all the Python imports that a particular function needs be specified within the function body, and not outside it. The Minibatch Spec class can contain any other functions defined by the user, called from within the functions given below. 
 The Minibatch Spec class has the following functions.
 
-1. <b>initialize worker()</b>: This function is used for setup of packages or for other one-time-per-worker tasks. This function will be executed exactly once on each worker. For example - if you task involves NLP, you would add code to download tokenizer models from NLTK here.   
+1. <b>initialize worker()</b>: This function is used for setup of packages or for other one-time-per-worker tasks. This function will be executed exactly once on each worker. It can be left blank if no such tasks exist. For example - if you task involves NLP, you would add code to download tokenizer models from NLTK here.   
 2. <b>read_misc</b>: This function is for accessing the files specified under the <i>misc</i> field in <i>params</i>. 
 <br/>
 <i>Arguments</i>: <br/>
@@ -29,10 +29,40 @@ The Minibatch Spec class has the following functions.
    - metrics: this is a dictionary whose keys are the same as the ones returned by the <i>train</i> function or the <i>valtest</i> function. The dictionary's values are a list of accumulated metrics from each iteration of the <i>train</i> function or the <i>valtest</i> function. 
     <br/>
 
-   <i>Returns</i>: For train, val and test modes, the function must return a tuple of two PyTorch Tensors - the processed Tensor and the label Tensor. For predict mode, the function must return a tuple of the processed tensor and None. 
+   <i>Returns</i>: For train, val and test modes, the function must return a tuple of two PyTorch Tensors - the processed Tensor and the label Tensor. For predict mode, the function must return a tuple of the processed tensor and None.
+5. <b>train:</b> This function is to train the model(s) on a single minibatch of data.
+<br/>
+<i>Arguments</i>: <br/>
+   - model_object - the model object that was created in create_model_components
+   - minibatch: a single minibatch of data from the train dataset, based on the batch_size hyperparameter value
+   - hyperparams: a single hyperparameter configuration dictionary, for the model in question
+   - device: the Voayger's HPU device on which the model and data should be moved to 
+    <br/>
+
+   <i>Returns</i>: A dictionary containing minibatch level metrics. The keys of the dictionary must describe the metric (such as 'loss' or 'top-5 accuracy') and the values in the dictionary must be single values (such as Float or Tensor, not List or Dict)
+6. <b>valtest:</b> This function is to run the model(s) on the validation and test dataset. The same function is used for both validation and test operations.
+<br/>
+<i>Arguments</i>: <br/>
+   - model_object - the model object that was created in create_model_components
+   - minibatch: a single minibatch of data from the train dataset, based on the batch_size hyperparameter value
+   - hyperparams: a single hyperparameter configuration dictionary, for the model in question
+   - device: the Voayger's HPU device on which the model and data should be moved to 
+    <br/>
+
+   <i>Returns</i>: A dictionary containing validation or test metrics. The keys of the dictionary must describe the metric (such as 'loss' or 'top-5 accuracy') and the values in the dictionary must be single values (such as Float or Tensor, not List or Dict)
+7. <b>predict:</b> This function is to run the model(s) on the inference dataset.
+<br/>
+<i>Arguments</i>: <br/>
+   - model_object - the model object that was created in create_model_components
+   - minibatch: a single minibatch of data from the train dataset, based on the batch_size hyperparameter value
+   - hyperparams: a single hyperparameter configuration dictionary, for the model in question
+   - device: the Voayger's HPU device on which the model and data should be moved to 
+    <br/>
+
+   <i>Returns</i>: Two lists - one that contains the predicted classes and the other that contains confidence probabilities for each of the examples.
 <br/>
 
 <br/><br/>
-The ETL Spec class template -
+The Minibatch Spec class template -
 
-![etl_spec](img/etl_spec.png)
+![mop_spec](img/mop_spec.png)

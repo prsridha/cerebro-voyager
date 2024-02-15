@@ -6,7 +6,7 @@ Also, we recommend that all the Python imports that a particular function needs 
 
 The ETL Spec class has the following functions.
 
-1. <b>initialize worker()</b>: This function is used for setup of packages or for other one-time-per-worker tasks. This function will be executed exactly once on each worker. For example - if you task involves NLP, you would add code to download tokenizer models from NLTK here.   
+1. <b>initialize worker()</b>: This function is used for setup of packages or for other one-time-per-worker tasks. This function will be executed exactly once on each worker. It can be left blank if no such tasks exist. For example - if you task involves NLP, you would add code to download tokenizer models from NLTK here.   
 2. <b>read_misc</b>: This function is for accessing the files specified under the <i>misc</i> field in <i>params</i>. 
 <br/>
 <i>Arguments</i>: <br/>
