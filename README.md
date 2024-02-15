@@ -24,13 +24,12 @@ We support only PyTorch as of now.
 ## Usage
 First, you must start the cluster following the steps given in the [next section](#setup-and-installation).
 In the Jupyter Notebook, you can interact with Cerebro by filling out code templates, which are then picked up and internally scaled across the cluster resources. A copy of the template can be found [here](setup/misc/experiment.ipynb). This template will be available as an .ipynb file in the Notebook. Additionally, you can upload any relevant files, including a requirements.txt containing your project's dependencies.
-Along with the code templates, you must provide details about your dataset and your model selection workload also in the same Jupyter Notebook. You can then run data preprocessing on your datasets, train your models, validate, test and run inference too. This will be done across all workers and using all GPUs on each worker. Cerebro allows you to visualized metrics from all your models in real-time on the same graph via Tensorboard.  
+Along with the code templates, you must provide details about your dataset and your model selection workload also in the same Jupyter Notebook. You can then run data preprocessing on your datasets, train your models, validate, test and run inference too. This will be done across all workers and using all GPUs on each worker. Cerebro allows you to visualized metrics from all your models in real-time on the same graph via Tensorboard.  Cerebro also supports direct model inference with pretrained models.
 
 The user is expected to provide the following details about their experiment:
  
-1. <b>Dataset Locators</b> - Datasets are expected to be in tabular .csv format where each example is a row and the features are columns. The path to these dataset files will be specified in the <i>params</i> field on Jupyter Notebook. We recommend storing your datasets for your experiments in Voyager's [Ceph storage](https://www.sdsc.edu/support/user_guides/voyager.html#storage). <br />
-   
-   If your data contains multi-modal object files (images, text, video, etc.), you can specify the relative path to your object file in the .csv as shown below.
+1. <b>Dataset Locators</b> - Datasets are expected to be in tabular .csv format where each example is a row and the features are columns. The path to these dataset files will be specified in the <i>params</i> field on Jupyter Notebook. We recommend storing your datasets in Voyager's [Ceph storage](https://www.sdsc.edu/support/user_guides/voyager.html#storage). <br />
+   Cerebro supports multi-modal object files such as images, text, video or any object file.
 
    <b>A more detailed explanation of the list of accepted Dataset Locators can be found [here](docs/dataset_locators.md). </b>
 

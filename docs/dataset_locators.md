@@ -2,7 +2,7 @@
 
 <b>Dataset Locators</b> are the URLs or paths that point to the dataset files and object files of your experiment. They are passed to Cerebro via the <i>param</i> field in the Jupyter Notebook code.
 
-1. <b>Dataset files</b> ('*_main' in params) are required to be in tabular .csv format, with the first line as a header that starts with the id, followed by all the features of your dataset. Each row of this file will be an example in your dataset. You need to create different files for train, val, test and inference. Cerebro supports direct Model inference (with pretrained models) without the train, val and test steps.
+1. <b>Dataset files</b> ('*_main' in params) are required to be in tabular .csv format, with the first line as a header that starts with the id, followed by all the features of your dataset. Each row of this file will be an example in your dataset. You need to create different files for train, val, test and inference. For multi-modal object files, you can specify the relative path to your object file in the .csv as shown below.
 This example is the train dataset file for the Microsoft COCO image captioning dataset - 
 
    | Image Object           | Height | Width | Captions                                    |
