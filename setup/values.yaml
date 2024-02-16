@@ -23,7 +23,7 @@ controller:
     datasetHostPath: /voyager/ceph/users/<username>/datasets
     datasetMountPath: /datasets
   image:
-    platform: dev
+    platform: prod
     gitBranch: v0.1
     gitURL: https://github.com/prsridha/cerebro-voyager.git
     core: prsridha/cerebro-voyager:latest
