@@ -77,8 +77,10 @@ If you're using JupyterLab Desktop, you can copy-paste the link in the <i>Connec
 <b>A detailed list of all commands and their usage can be found [here](docs/setup_options.md).</b>   
 
 ## Examples
-A model selection experiment for [Resnet50 on Imagenet](examples/Resnet%20on%20Imagenet) has been implemented using Cerebro, by varying hyperparameter such as batch size, learning rate and lambda values, leading to 8 unique hyperparameter combinations. The minibatch loss during training for some of the models are shown below - 
+A model selection experiment for [Resnet50 on Imagenet](examples/Resnet%20on%20Imagenet) has been implemented using Cerebro, by varying hyperparameter such as batch size, learning rate and lambda values, leading to 8 unique hyperparameter combinations. The minibatch loss during training for all the models is shown below - 
 ![minibatch_loss](docs/img/train_minibatch_loss.png)
+The top1 accuracy during training for all the models is shown below -
+![minibatch_loss](docs/img/minibatch_top1_acc.png)
 
 ## Support
 For issues and feature requests, please open a [GitHub issue](https://github.com/prsridha/cerebro-voyager/issues).
