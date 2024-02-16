@@ -104,6 +104,10 @@ class CerebroInstaller:
             with open("setup/values.yaml", 'w') as file:
                 file.write(updated_content)
 
+            # update existing values_yaml variable
+            self.values_yaml["cluster"]["uid"] = uid
+            self.values_yaml["cluster"]["gid"] = gid
+
         # set commonly used values
         self.username = username
         self.namespace = self.values_yaml["cluster"]["namespace"]
