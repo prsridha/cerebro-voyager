@@ -22,6 +22,7 @@ COPY ./cerebro /cerebro-voyager/cerebro
 COPY init.sh /cerebro-voyager/init.sh
 COPY setup.py /cerebro-voyager/setup.py
 COPY requirements.txt /cerebro-voyager/requirements.txt
+COPY ./setup/misc/experiment.ipynb /cerebro-voyager/experiment.ipynb
 
 # install dependencies
 RUN pip install -r /cerebro-voyager/requirements.txt
