@@ -1,0 +1,57 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
+controller:
+  volumes:
+    userCodePath: /user
+    logPath: /data/logs
+    kvsPath: /key_value_store
+    dataPath: /data/data_storage
+    metricsPath: /data/metrics_storage
+    checkpointPath: /data/checkpoint_storage
+    baseHostPath: /voyager/ceph/users/<username>/volumes
+    datasetHostPath: /voyager/ceph/users/<username>/datasets
+    datasetMountPath: /datasets
+  image:
+    platform: prod
+    gitBranch: v0.1
+    gitURL: https://github.com/prsridha/cerebro-voyager.git
+    core: prsridha/cerebro-voyager:latest
+  services:
+    jupyterPort: 8888
+    tensorboardPort: 6006
+cluster:
+  namespace: default
+  uid: <uid>
+  gid: <gid>
+  jupyterTokenSting: projectcerebro
+  resourceRequests:
+    workerGPU: 8
+    workerCPU: 92
+    hugePages: 1Gi
+    workerMemory: 384G
+    controllerCPU: 16
+    controllerMemory: 16G
+  resourceLimits:
+    workerGPU: 8
+    workerCPU: 92
+    hugePages: 1Gi
+    workerMemory: 384G
+    controllerCPU: 20
+    controllerMemory: 32G
+  numWorkers: 4
+  username: <username>
+worker:
+  sampleSize: 0.01
+  shardMultiplicity: 4
+  workerDataPath: /data_storage_worker

@@ -1,0 +1,50 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.cluster.username }}-jupyternotebooksvc
+  namespace: {{ .Values.cluster.namespace }}
+  labels:
+    serviceApp: jupyter
+    app: cerebro-controller-svc
+    user: {{ .Values.cluster.username }}
+spec:
+  selector:
+    app: cerebro-controller
+    user: {{ .Values.cluster.username }}
+  ports:
+    - port: {{ .Values.controller.services.jupyterPort }}
+      targetPort: {{ .Values.controller.services.jupyterPort }}
+#      nodePort: {{ .Values.controller.services.jupyterNodePort }}
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.cluster.username }}-tensorboardsvc
+  namespace: {{ .Values.cluster.namespace }}
+  labels:
+    serviceApp: tensorboard
+    app: cerebro-controller-svc
+    user: {{ .Values.cluster.username }}
+spec:
+  selector:
+    app: cerebro-controller
+    user: {{ .Values.cluster.username }}
+  ports:
+    - port: {{ .Values.controller.services.tensorboardPort }}
+      targetPort: {{ .Values.controller.services.tensorboardPort }}
+#      nodePort: {{ .Values.controller.services.tensorboardNodePort }}
+  type: ClusterIP
