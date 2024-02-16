@@ -22,29 +22,33 @@ We support only PyTorch as of now.
 
 
 ## Usage
-First, you must start the cluster following the steps given in the [next section](#setup-and-installation).
-In the Jupyter Notebook, you can interact with Cerebro by filling out code templates, which are then picked up and internally scaled across the cluster resources. A copy of the template can be found [here](setup/misc/experiment.ipynb). This template will be available as an .ipynb file in the Notebook. Additionally, you can upload any relevant files, including a requirements.txt containing your project's dependencies.
-Along with the code templates, you must provide details about your dataset and your model selection workload also in the same Jupyter Notebook. You can then run data preprocessing on your datasets, train your models, validate, test and run inference too. This will be done across all workers and using all GPUs on each worker. Cerebro allows you to visualized metrics from all your models in real-time on the same graph via Tensorboard.  Cerebro also supports direct model inference with pretrained models.
+![usage](docs/img/usage.png)
 
-The user is expected to provide the following details about their experiment:
- 
-1. <b>Dataset Locators</b> - Datasets are expected to be in tabular .csv format where each example is a row and the features are columns. The path to these dataset files will be specified in the <i>params</i> field on Jupyter Notebook. We recommend storing your datasets in Voyager's [Ceph storage](https://www.sdsc.edu/support/user_guides/voyager.html#storage). <br />
-   Cerebro supports multi-modal object files such as images, text, video or any object file.
+1. <b>Start the cluster</b> - You begin by starting the cluster, following the steps given in the [next section](#setup-and-installation).
+<br/> <br/>
 
-   <b>A more detailed explanation of the list of accepted Dataset Locators can be found [here](docs/dataset_locators.md). </b>
+2. <b>Complete code templates</b> - In the Jupyter Notebook, you can interact with Cerebro by filling out code templates, which are then picked up and internally scaled across the cluster resources. A copy of the template can be found [here](setup/misc/experiment.ipynb). This template will be available as an .ipynb file in the Notebook. Additionally, you can upload any relevant files, including a requirements.txt containing your project's dependencies.
+   <br/><br/>
 
+   If your dataset needs to be pre-processed before feeding it into the model, you can add your code in the ETL Spec Class. Cerebro will process the entire dataset in parallel, across all workers. Here, the data is shuffled, sharded across workers, the multi-modal object files are downloaded and the entire dataset is processed into Tensors for future model building. <br />
+   More details about the class can be found <b>[here](docs/etl_spec.md)</b>.
+   <br/> <br/>
+   For model building operations such as train, validation, test and inference, you can add your code in the Minibatch Spec Class. Cerebro will partition your dataset across all workers and train your models using all GPUs in a worker. Similarly, validation, test and prediction are also done in parallel across all workers. Arguments to functions in this class can be used as inputs for completing your code. Cerebro will supply values to these arguments each time it is called, based on the models and the datasets. <br />
+   More details about the class can be found <b>[here](docs/mop_spec.md)</b>.
+<br/> <br/>
 
-2. <b>ETL Specification</b>: If you dataset needs to be pre-processed before feeding it into the model, you can add your code in the ETL Spec Class. Cerebro will process the entire dataset in parallel, across all workers. Here, the data is shuffled, sharded across workers, multi-modal object files are downloaded and the entire dataset is processed into Tensors for future model building. <br />
-   <b> More details about the class can be found [here](docs/etl_spec.md)</b>.
+3. <b>Link your datasets</b> - Datasets are expected to be in tabular .csv format where each example is a row and the features are columns. The path to these dataset files, known as Dataset Locators, will be specified in the <i>params</i> field on Jupyter Notebook. We recommend storing your datasets in Voyager's [Ceph storage](https://www.sdsc.edu/support/user_guides/voyager.html#storage). Cerebro supports multi-modal object files such as images, text, video or any object file.
 
- 
-3. <b>Minibatch Specification</b>: For model building operations such as train, validation, test and inference, you can add your code in the Minibatch Spec Class. Cerebro will partition your dataset across all workers and train your models using all GPUs in a worker. Similarly, validation, test and prediction are also done in parallel across all workers. Arguments to functions in this class can be used as inputs for completing your code. Cerebro will supply values to these arguments each time it is called, based on the models and the datasets. <br />
-   <b> More details about the class can be found [here](docs/mop_spec.md)</b>.
+   A detailed explanation of the list of accepted Dataset Locators can be found <b>[here](docs/dataset_locators.md)</b>.
+<br/> <br/>
 
+4. <b>Run your experiments</b> - Along with the code templates, you must provide details about your model selection workload. This includes the number of epochs and the hyperparameter search space. This is passed to Cerebro via the Experiment class object. Using this class, you can run data preprocessing on your datasets, train your models, validate, test and run inference too. This will be done across all workers and using all GPUs on each worker. Cerebro also supports direct model inference with pretrained models.
+    
+   More details about the class can be found <b>[here](docs/experiment.md)</b>. 
+<br/> <br/>
 
-4. <b>Experiment</b>: This is the handler class that is used to run all data pre-processing and model building operations. It reads in the Dataset Locators and manages workers.
-   <b> More details about the class can be found [here](docs/experiment.md)</b>.
-
+6. <b>View model visualizations</b> - You can visualize metrics from all your models in real-time on a single graph via Tensorboard. It can be accessed by the link provided when you create the cluster or using the Tensorboard button that appears when you create an Experiment object.
+<br/> <br/>
 
 ## Setup and Installation
 1. Login to the Voyager console by obtaining access as mentioned [here](https://www.sdsc.edu/support/user_guides/voyager.html#access), and clone this repository.
@@ -73,10 +77,11 @@ If you're using JupyterLab Desktop, you can copy-paste the link in the <i>Connec
 <b>A detailed list of all commands and their usage can be found [here](docs/setup_options.md).</b>   
 
 ## Examples
-A model selection experiment for [Resnet50 on Imagenet](examples/Resnet%20on%20Imagenet) has been implemented using Cerebro, by varying hyperparameter such as batch size, learning rate and lambda values, leading to 8 unique hyperparameter combinations. The top-5 accuracy of some of the models trained are shown below - 
-![top_5_acc](docs/img/train_top5_acc.png)
+A model selection experiment for [Resnet50 on Imagenet](examples/Resnet%20on%20Imagenet) has been implemented using Cerebro, by varying hyperparameter such as batch size, learning rate and lambda values, leading to 8 unique hyperparameter combinations. The minibatch loss during training for some of the models are shown below - 
+![minibatch_loss](docs/img/train_minibatch_loss.png)
 
 ## Support
 For issues and feature requests, please open a [GitHub issue](https://github.com/prsridha/cerebro-voyager/issues).
 
+## Acknowledgements
 
