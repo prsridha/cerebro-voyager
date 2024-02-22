@@ -89,4 +89,5 @@ The top1 accuracy during training for all the models is shown below -
 For issues and feature requests, please open a [GitHub issue](https://github.com/prsridha/cerebro-voyager/issues).
 
 ## Acknowledgements
+This work was funded in part by an NSF CAREER Award under award number 1942724, a gift from VMware, and the [Halıcıoğlu Data Science Institute](https://datascience.ucsd.edu/) at [UC San Diego](https://ucsd.edu/). The content is solely the responsibility of the authors and does not necessarily represent the views of any of these organizations. We also thank the members of the [UC San Diego Database Lab](https://dbucsd.github.io/) and the Voyager team at the [San Diego Supercomputer Center](https://www.sdsc.edu/) for their feedback and help.
 
